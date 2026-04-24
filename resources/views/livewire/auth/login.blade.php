@@ -151,12 +151,12 @@ new #[Layout('components.layouts.auth')] class extends Component {
         </div>
     </form>
 
-    @if (Route::has('register'))
+    {{-- @if (Route::has('register'))
         <p class="text-center">
             <span>{{ __('New on our platform?') }}</span>
             <a href="{{ route('register') }}" wire:navigate>
                 <span>{{ __('Create an account') }}</span>
             </a>
         </p>
-    @endif
+    @endif --}}
 </div>
