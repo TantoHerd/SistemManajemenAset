@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\User;
+use App\Helpers\SettingHelper;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -19,10 +20,14 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
     protected $exportDate;
+    protected $companyName;
+    protected $systemName;
 
     public function __construct()
     {
         $this->exportDate = now();
+        $this->companyName = \App\Helpers\SettingHelper::getCompanyName();
+        $this->systemName = \App\Helpers\SettingHelper::getSystemName();
     }
 
     public function collection()
@@ -83,23 +88,30 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 $lastRow = $sheet->getHighestRow();
                 $lastColumn = 'I';
                 
-                // Title
+                // Header
                 $sheet->insertNewRowBefore(1, 4);
                 $sheet->mergeCells('A1:I1');
-                $sheet->setCellValue('A1', 'LAPORAN DATA USER');
+                $sheet->setCellValue('A1', $this->companyName);
                 $sheet->getStyle('A1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1E3A5F']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 
                 $sheet->mergeCells('A2:I2');
-                $sheet->setCellValue('A2', 'Periode: ' . $this->exportDate->format('d F Y H:i:s'));
+                $sheet->setCellValue('A2', 'LAPORAN DATA USER');
                 $sheet->getStyle('A2')->applyFromArray([
-                    'font' => ['size' => 10, 'italic' => true, 'color' => ['rgb' => '666666']],
+                    'font' => ['bold' => true, 'size' => 14],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 
-                // Header
+                $sheet->mergeCells('A3:I3');
+                $sheet->setCellValue('A3', 'Periode: ' . $this->exportDate->format('d F Y H:i:s'));
+                $sheet->getStyle('A3')->applyFromArray([
+                    'font' => ['size' => 10, 'italic' => true],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                ]);
+                
+                // Header Table
                 $headerRow = 4;
                 $sheet->getStyle('A' . $headerRow . ':' . $lastColumn . $headerRow)->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
@@ -120,14 +132,32 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                     ]
                 ]);
                 
+                // Alternating row colors
+                $dataStartRow = $headerRow + 1;
+                for ($i = $dataStartRow; $i <= $lastRow; $i++) {
+                    if ($i % 2 == 0) {
+                        $sheet->getStyle('A' . $i . ':' . $lastColumn . $i)->applyFromArray([
+                            'fill' => [
+                                'fillType' => Fill::FILL_SOLID,
+                                'startColor' => ['rgb' => 'F8F9FC']
+                            ]
+                        ]);
+                    }
+                }
+                
                 // Footer
                 $footerRow = $lastRow + 2;
                 $sheet->mergeCells('A' . $footerRow . ':' . $lastColumn . $footerRow);
-                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s'));
+                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s') . ' | ' . $this->systemName);
                 $sheet->getStyle('A' . $footerRow)->applyFromArray([
-                    'font' => ['size' => 9, 'italic' => true, 'color' => ['rgb' => '999999']],
+                    'font' => ['size' => 9, 'italic' => true, 'color' => ['rgb' => '6C757D']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
+                
+                // Auto-size columns
+                foreach (range('A', $lastColumn) as $col) {
+                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                }
             },
         ];
     }

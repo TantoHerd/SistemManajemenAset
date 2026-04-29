@@ -379,6 +379,39 @@ class Asset extends Model
         return view('admin.assets.print-batch', compact('assets'));
     }
 
+    public function specifications()
+    {
+        return $this->hasMany(AssetSpecification::class);
+    }
+
+    // Get single specification value
+    public function getSpecification($key, $default = null)
+    {
+        if (!$this->relationLoaded('specifications')) {
+            $this->load('specifications');
+        }
+        
+        return $this->specifications
+            ->where('spec_key', $key)
+            ->first()?->spec_value ?? $default;
+    }
+
+    // Get all specifications as key-value array
+    public function getAllSpecifications(): array
+    {
+        if (!$this->relationLoaded('specifications')) {
+            $this->load('specifications');
+        }
+        
+        return $this->specifications->pluck('spec_value', 'spec_key')->toArray();
+    }
+
+    // Set multiple specifications at once
+    public function setSpecifications(array $specs): void
+    {
+        AssetSpecification::setSpecifications($this, $specs);
+    }
+
     /**
      * Boot the model.
      */

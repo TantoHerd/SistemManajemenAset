@@ -56,4 +56,14 @@ class Category extends Model
     {
         return $query->has('assets');
     }
+
+    public function specifications()
+    {
+        return $this->hasMany(CategorySpecification::class);
+    }
+
+    public function activeSpecifications()
+    {
+        return $this->specifications()->active()->ordered();
+    }
 }

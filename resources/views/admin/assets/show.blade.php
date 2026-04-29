@@ -5,272 +5,307 @@
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('admin.assets.index') }}">Aset</a></li>
-    <li class="breadcrumb-item active" aria-current="page">{{ $asset->asset_code }}</li>
+    <li class="breadcrumb-item active">{{ $asset->asset_code }}</li>
 @endsection
 
 @section('header-actions')
-    <div class="d-flex gap-2">
-        {{-- <div class="dropdown">
-            <button class="btn btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                <i class="bi bi-download"></i> Export
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                    <a href="{{ route('admin.maintenances.export', ['asset_id' => $asset->id]) }}" class="dropdown-item">
-                        <i class="bi bi-file-earmark-excel"></i> Export Maintenance
-                    </a>
-                </li>
-            </ul>
-        </div> --}}
-        <a href="{{ route('admin.assets.print-label', $asset) }}" class="btn btn-primary" target="_blank">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ route('admin.assets.print-label', $asset) }}" class="btn btn-primary btn-sm" target="_blank">
             <i class="bi bi-upc-scan"></i> Cetak Label
         </a>
-        <a href="{{ route('admin.assets.edit', $asset) }}" class="btn btn-warning">
+        <a href="{{ route('admin.assets.edit', $asset) }}" class="btn btn-warning btn-sm">
             <i class="bi bi-pencil"></i> Edit
         </a>
-        <a href="{{ route('admin.assets.index') }}" class="btn btn-secondary">
+        <a href="{{ route('admin.assets.index') }}" class="btn btn-secondary btn-sm">
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
     </div>
 @endsection
 
 @section('content')
-<div class="row">
-    <!-- QR Code Card -->
-    <div class="col-md-4 mb-4">
-        <div class="card text-center">
-            <div class="card-header bg-white">
-                <h6 class="mb-0">
-                    <i class="bi bi-upc-scan"></i> QR Code Aset
-                </h6>
+{{-- Grid utama: di HP jadi 1 kolom, di desktop 2 kolom --}}
+<div class="row g-3">
+    
+    {{-- KOLOM KIRI: QR CODE --}}
+    <div class="col-12 col-md-5 col-lg-4">
+        <div class="card h-100 text-center">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-upc-scan text-primary"></i> QR Code Aset</h6>
             </div>
-            <div class="card-body py-4">
-                @php
-                    $url = route('admin.assets.show', $asset);
-                    $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(120)->margin(0)->generate($url);
-                @endphp
-                <div style="display: flex; justify-content: center; align-items: center; background: #fafafa; padding: 15px; border-radius: 10px;">
-                    {!! $qrCode !!}
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                {{-- Background QR dengan border radius --}}
+                <div class="bg-light p-3 rounded-4 mb-3">
+                    @php
+                        $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(150)->margin(0)->generate($asset->asset_code);
+                    @endphp
+                    <div style="width: 130px; height: 130px;">{!! $qrCode !!}</div>
                 </div>
-                <div class="mt-3">
-                    <code>{{ $asset->asset_code }}</code>
-                </div>
-                <small class="text-muted">Scan untuk melihat detail aset</small>
-            </div>
-            <div class="card-footer bg-white">
-                <button onclick="generateBarcode({{ $asset->id }})" class="btn btn-sm btn-primary">
-                    <i class="bi bi-arrow-repeat"></i> Generate Ulang QR Code
+                <code class="small bg-light px-2 py-1 rounded">{{ $asset->asset_code }}</code>
+                <button onclick="generateBarcode({{ $asset->id }})" class="btn btn-sm btn-outline-primary mt-3 rounded-pill">
+                    <i class="bi bi-arrow-repeat"></i> Generate Ulang
                 </button>
             </div>
         </div>
     </div>
-    
-    <!-- Status Card -->
-    <div class="col-md-8 mb-4">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h6 class="mb-0">
-                    <i class="bi bi-info-circle"></i> Informasi Status
-                </h6>
+
+    {{-- KOLOM KANAN: STATUS & QUICK ACTION --}}
+    <div class="col-12 col-md-7 col-lg-8">
+        <div class="card h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle text-primary"></i> Informasi Status</h6>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <table class="table table-sm table-borderless">
-                            <tr>
-                                <td width="40%"><strong>Status</strong></td>
-                                <td>
-                                    <span class="badge {{ $asset->status_badge_class }} px-3 py-2 rounded-pill">
-                                        {{ $asset->status_label }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Lokasi</strong></td>
-                                <td>
-                                    <i class="bi bi-geo-alt text-primary me-1"></i>
-                                    {{ $asset->location->full_path ?? $asset->location->name ?? '-' }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Kategori</strong></td>
-                                <td>
-                                    <i class="bi bi-tag text-info me-1"></i>
-                                    {{ $asset->category->name ?? '-' }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Masa Manfaat</strong></td>
-                                <td>{{ $asset->useful_life_months }} bulan ({{ round($asset->useful_life_months / 12, 1) }} tahun)</td>
-                            </tr>
-                        </table>
+                {{-- Grid status card dalam 3 kolom di desktop, 2 kolom di HP --}}
+                <div class="row g-3">
+                    <div class="col-6 col-sm-4">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Status</div>
+                            <span class="badge {{ $asset->status_badge_class }} px-3 py-2 rounded-pill fs-6">
+                                {{ $asset->status_label }}
+                            </span>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <table class="table table-sm table-borderless">
-                            <tr>
-                                <td width="40%"><strong>Pengguna</strong></td>
-                                <td>
-                                    @if($asset->assignedTo)
-                                        <i class="bi bi-person-check text-success me-1"></i>
-                                        {{ $asset->assignedTo->name }}
-                                        <br>
-                                        <small class="text-muted">{{ $asset->assignedTo->email }}</small>
-                                    @else
-                                        <span class="text-muted">
-                                            <i class="bi bi-person"></i> Belum diassign
-                                        </span>
-                                    @endif
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Garansi</strong></td>
-                                <td>
-                                    @if($asset->warranty_expiry)
-                                        @if($asset->is_under_warranty)
-                                            <span class="text-success">
-                                                <i class="bi bi-shield-check"></i> 
-                                                Berlaku hingga {{ $asset->warranty_expiry->format('d M Y') }}
-                                            </span>
-                                        @else
-                                            <span class="text-danger">
-                                                <i class="bi bi-shield-exclamation"></i> 
-                                                Berakhir pada {{ $asset->warranty_expiry->format('d M Y') }}
-                                            </span>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">Tidak ada informasi garansi</span>
-                                    @endif
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Dibuat</strong></td>
-                                <td>{{ $asset->created_at->format('d M Y H:i') }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Diperbarui</strong></td>
-                                <td>{{ $asset->updated_at->format('d M Y H:i') }}</td>
-                            </tr>
-                        </table>
+                    <div class="col-6 col-sm-4">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Kategori</div>
+                            <div class="fw-semibold">{{ $asset->category->name ?? '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Masa Manfaat</div>
+                            <div class="fw-semibold">{{ $asset->useful_life_months }} bln</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="bg-light rounded-3 p-3">
+                            <div class="text-muted small mb-1">Lokasi</div>
+                            <div class="fw-semibold">{{ $asset->location->full_path ?? $asset->location->name ?? '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="bg-light rounded-3 p-3">
+                            <div class="text-muted small mb-1">Pengguna</div>
+                            <div class="fw-semibold">
+                                @if($asset->assignedTo)
+                                    <i class="bi bi-person-check text-success me-1"></i> {{ $asset->assignedTo->name }}
+                                @else
+                                    <span class="text-muted"><i class="bi bi-person"></i> Belum diassign</span>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Quick Actions -->
-                <div class="mt-3 pt-3 border-top">
+
+                {{-- Quick Action Buttons --}}
+                <div class="mt-4 pt-2 border-top d-flex flex-wrap gap-2">
                     @if($asset->status === 'available')
-                        <button onclick="toggleCheckInOut({{ $asset->id }})" class="btn btn-success">
+                        <button onclick="toggleCheckInOut({{ $asset->id }})" class="btn btn-success flex-grow-1 rounded-pill">
                             <i class="bi bi-box-arrow-right"></i> Checkout Aset
                         </button>
                     @elseif($asset->status === 'in_use')
-                        <button onclick="toggleCheckInOut({{ $asset->id }})" class="btn btn-warning">
+                        <button onclick="toggleCheckInOut({{ $asset->id }})" class="btn btn-warning flex-grow-1 rounded-pill">
                             <i class="bi bi-box-arrow-in-left"></i> Checkin Aset
                         </button>
                     @endif
-                    
-                    @if($asset->status === 'available' || $asset->status === 'in_use')
-                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#maintenanceModal">
-                            <i class="bi bi-wrench"></i> Kirim Maintenance
-                        </button>
-                    @endif
+                    <button class="btn btn-danger rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#maintenanceModal">
+                        <i class="bi bi-wrench"></i> Maintenance
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <!-- Informasi Detail -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h6 class="mb-0">
-                    <i class="bi bi-laptop"></i> Informasi Aset
-                </h6>
+{{-- DETAIL INFORMASI ASET & SPESIFIKASI (2 kolom di desktop, 1 kolom di HP) --}}
+<div class="row g-3 mt-2">
+    
+    {{-- INFORMASI ASET --}}
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-laptop text-primary"></i> Informasi Aset</h6>
             </div>
-            <div class="card-body">
-                <table class="table table-sm">
-                    <tr>
-                        <th width="35%">Kode Aset</th>
-                        <td><code>{{ $asset->asset_code }}</code></td>
-                    </tr>
-                    <tr>
-                        <th>Nama Aset</th>
-                        <td>{{ $asset->name }}</td>
-                    </tr>
-                    <tr>
-                        <th>Serial Number</th>
-                        <td>{{ $asset->serial_number ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Brand</th>
-                        <td>{{ $asset->brand ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Model</th>
-                        <td>{{ $asset->model ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Catatan</th>
-                        <td>{{ $asset->notes ?? '-' }}</td>
-                    </tr>
-                </table>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                        <span class="text-muted">Kode Aset</span>
+                        <code class="bg-light px-2 py-1 rounded">{{ $asset->asset_code }}</code>
+                    </li>
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                        <span class="text-muted">Nama Aset</span>
+                        <span class="fw-semibold">{{ $asset->name }}</span>
+                    </li>
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                        <span class="text-muted">Serial Number</span>
+                        <span>{{ $asset->serial_number ?? '-' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                        <span class="text-muted">Brand / Model</span>
+                        <span>{{ $asset->brand ?? '-' }} / {{ $asset->model ?? '-' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                        <span class="text-muted">Garansi</span>
+                        @if($asset->warranty_expiry)
+                            @if($asset->is_under_warranty)
+                                <span class="badge bg-success">Aktif hingga {{ $asset->warranty_expiry->format('d M Y') }}</span>
+                            @else
+                                <span class="badge bg-secondary">Berakhir {{ $asset->warranty_expiry->format('d M Y') }}</span>
+                            @endif
+                        @else
+                            <span>-</span>
+                        @endif
+                    </li>
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                        <span class="text-muted">Tahun Pengadaan</span>
+                        <span>{{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <span class="text-muted d-block mb-1">Catatan</span>
+                        <p class="mb-0">{{ $asset->notes ?? '-' }}</p>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
-    
-    <!-- Informasi Finansial -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h6 class="mb-0">
-                    <i class="bi bi-currency-dollar"></i> Informasi Finansial
+
+    {{-- ============================================ --}}
+    {{-- SPESIFIKASI ASET --}}
+    {{-- ============================================ --}}
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-list-check text-info"></i> Spesifikasi
                 </h6>
+                @if($asset->specifications->count() > 0)
+                    <span class="badge bg-info">{{ $asset->specifications->count() }} spesifikasi</span>
+                @endif
+            </div>
+            <div class="card-body p-0">
+                @php
+                    // Ambil spesifikasi dari kategori yang terurut
+                    $categorySpecs = $asset->category->activeSpecifications ?? collect([]);
+                    $assetSpecs = $asset->specifications->pluck('spec_value', 'spec_key');
+                @endphp
+                
+                @if($categorySpecs->count() > 0)
+                    <ul class="list-group list-group-flush">
+                        @foreach($categorySpecs as $spec)
+                            @php
+                                $value = $assetSpecs[$spec->key] ?? null;
+                            @endphp
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                                <span class="text-muted">
+                                    {{ $spec->label }}
+                                    @if($spec->is_required)
+                                        <span class="text-danger">*</span>
+                                    @endif
+                                </span>
+                                <span>
+                                    @if($value === null || $value === '')
+                                        <span class="text-muted fst-italic">-</span>
+                                    @elseif($spec->type == 'boolean')
+                                        @if($value == '1')
+                                            <span class="badge bg-success">Ya</span>
+                                        @else
+                                            <span class="badge bg-secondary">Tidak</span>
+                                        @endif
+                                    @elseif($spec->type == 'select')
+                                        @php
+                                            $option = collect($spec->options)->firstWhere('value', $value);
+                                        @endphp
+                                        <span class="fw-semibold">{{ $option['label'] ?? $value }}</span>
+                                    @elseif($spec->type == 'number')
+                                        <span class="fw-semibold">{{ is_numeric($value) ? number_format($value, 0, ',', '.') : $value }}</span>
+                                    @elseif($spec->type == 'date')
+                                        <span class="fw-semibold">{{ \Carbon\Carbon::parse($value)->format('d M Y') }}</span>
+                                    @else
+                                        <span class="fw-semibold">{{ $value }}</span>
+                                    @endif
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-clipboard-x fs-1 d-block mb-2"></i>
+                        <p class="mb-2">Tidak ada spesifikasi untuk kategori ini</p>
+                        <a href="{{ route('admin.categories.specifications.index', $asset->category) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Tambah Spesifikasi Kategori
+                        </a>
+                    </div>
+                @endif
+            </div>
+            @if($categorySpecs->count() > 0)
+                <div class="card-footer bg-white text-end">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        Spesifikasi berdasarkan kategori <strong>{{ $asset->category->name ?? '-' }}</strong>
+                    </small>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+{{-- FINANSIAL (Full Width) --}}
+<div class="row g-3 mt-2">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-currency-dollar text-success"></i> Informasi Finansial</h6>
             </div>
             <div class="card-body">
-                <table class="table table-sm">
-                    <tr>
-                        <th width="45%">Tanggal Pembelian</th>
-                        <td>{{ $asset->purchase_date->format('d M Y') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Harga Beli</th>
-                        <td>{{ $asset->formatted_purchase_price }}</td>
-                    </tr>
-                    <tr>
-                        <th>Nilai Residu</th>
-                        <td>{{ $asset->formatted_residual_value ?? 'Rp ' . number_format($asset->residual_value, 0, ',', '.') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Nilai Saat Ini</th>
-                        <td><span class="fw-bold text-primary">{{ $asset->formatted_current_value }}</span></td>
-                    </tr>
-                    <tr>
-                        <th>Total Penyusutan</th>
-                        <td>
-                            Rp {{ number_format($asset->purchase_price - $asset->current_value, 0, ',', '.') }}
-                            <small class="text-muted">({{ $asset->depreciation_percentage }}%)</small>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Penyusutan per Bulan</th>
-                        <td>Rp {{ number_format($asset->calculateMonthlyDepreciation(), 0, ',', '.') }}</td>
-                    </tr>
-                </table>
+                <div class="row g-3">
+                    <div class="col-6 col-sm-4 col-lg-2">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Harga Beli</div>
+                            <div class="fw-bold">{{ $asset->formatted_purchase_price }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-lg-2">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Nilai Residu</div>
+                            <div class="fw-bold">Rp {{ number_format($asset->residual_value, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-lg-2">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Nilai Saat Ini</div>
+                            <div class="fw-bold text-primary">{{ $asset->formatted_current_value }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-lg-2">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Penyusutan</div>
+                            <div class="fw-bold text-danger">{{ $asset->depreciation_percentage }}%</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-lg-2">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Total Susut</div>
+                            <div class="fw-bold">Rp {{ number_format($asset->purchase_price - $asset->current_value, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-lg-2">
+                        <div class="bg-light rounded-3 p-3 text-center h-100">
+                            <div class="text-muted small mb-1">Tgl Pembelian</div>
+                            <div class="fw-bold">{{ $asset->purchase_date ? $asset->purchase_date->format('d/m/Y') : '-' }}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Maintenance History -->
-<div class="row">
-    <div class="col-12 mb-4">
+{{-- RIWAYAT MAINTENANCE --}}
+<div class="row mt-3">
+    <div class="col-12">
         <div class="card">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">
-                    <i class="bi bi-wrench"></i> Riwayat Maintenance
-                </h6>
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#maintenanceModal">
-                    <i class="bi bi-plus"></i> Tambah Maintenance
-                </button>
+            <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-wrench text-primary"></i> Riwayat Maintenance</h6>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -278,38 +313,32 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Tanggal</th>
+                                <th>Tipe</th>
                                 <th>Teknisi</th>
-                                <th>Tindakan</th>
                                 <th>Biaya</th>
                                 <th>Status</th>
+                                <th width="60"></th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($asset->maintenances as $maintenance)
                             <tr>
-                                <td>{{ $maintenance->maintenance_date ? $maintenance->maintenance_date->format('d M Y') : '-' }}</td>
+                                <td class="text-nowrap">{{ $maintenance->maintenance_date ? $maintenance->maintenance_date->format('d/m/Y') : '-' }}</td>
+                                <td>{{ $maintenance->type_label }}</td>
                                 <td>{{ $maintenance->technician ?? '-' }}</td>
-                                <td>{{ Str::limit($maintenance->description ?? $maintenance->actions_performed ?? '-', 50) }}</td>
-                                <td>{{ $maintenance->formatted_cost ?? 'Rp ' . number_format($maintenance->cost ?? 0, 0, ',', '.') }}</td>
+                                <td>{{ number_format($maintenance->cost, 0, ',', '.') }}</td>
+                                <td><span class="badge bg-{{ $maintenance->status_badge }}">{{ $maintenance->status_label }}</span></td>
                                 <td>
-                                    @php
-                                        $statusBadges = [
-                                            'pending' => 'warning',
-                                            'in_progress' => 'info',
-                                            'completed' => 'success',
-                                            'cancelled' => 'danger'
-                                        ];
-                                    @endphp
-                                    <span class="badge bg-{{ $statusBadges[$maintenance->status] ?? 'secondary' }}">
-                                        {{ ucfirst($maintenance->status) }}
-                                    </span>
+                                    <a href="{{ route('admin.maintenances.show', $maintenance) }}" class="btn btn-sm btn-outline-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4">
-                                    <i class="bi bi-tools display-6 text-muted"></i>
-                                    <p class="text-muted mt-2">Belum ada riwayat maintenance</p>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <i class="bi bi-tools fs-4"></i>
+                                    <p class="mb-0">Belum ada riwayat maintenance</p>
                                 </td>
                             </tr>
                             @endforelse
@@ -321,116 +350,43 @@
     </div>
 </div>
 
-<!-- Audit Trail -->
-<div class="row">
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h6 class="mb-0">
-                    <i class="bi bi-clock-history"></i> Audit Trail
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Waktu</th>
-                                <th>Aksi</th>
-                                <th>User</th>
-                                <th>Perubahan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($auditLogs ?? [] as $log)
-                            <tr>
-                                <td>{{ $log->created_at->format('d M Y H:i') }}</td>
-                                <td>
-                                    @php
-                                        $actionIcons = [
-                                            'create' => 'plus-circle text-success',
-                                            'update' => 'pencil text-warning',
-                                            'delete' => 'trash text-danger',
-                                            'checkin' => 'box-arrow-in-left text-info',
-                                            'checkout' => 'box-arrow-right text-primary',
-                                            'scan' => 'upc-scan text-secondary',
-                                        ];
-                                    @endphp
-                                    <i class="bi bi-{{ $actionIcons[$log->action] ?? 'info-circle' }}"></i>
-                                    {{ ucfirst($log->action) }}
-                                </td>
-                                <td>{{ $log->user->name ?? '-' }}</td>
-                                <td>
-                                    @if($log->action == 'update' && $log->old_values && $log->new_values)
-                                        <button class="btn btn-sm btn-link p-0" onclick="showChanges({{ json_encode($log->old_values) }}, {{ json_encode($log->new_values) }})">
-                                            <i class="bi bi-eye"></i> Lihat
-                                        </button>
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="4" class="text-center py-3 text-muted">
-                                    Belum ada aktivitas
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Tambah Maintenance -->
+{{-- MODAL MAINTENANCE (Kirim Maintenance) --}}
 <div class="modal fade" id="maintenanceModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-wrench"></i> Kirim Maintenance
-                </h5>
+                <h5 class="modal-title"><i class="bi bi-wrench"></i> Kirim Maintenance</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('admin.maintenances.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="asset_id" value="{{ $asset->id }}">
                 <div class="modal-body">
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <label class="form-label">Judul <span class="text-danger">*</span></label>
                         <input type="text" name="title" class="form-control" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Deskripsi <span class="text-danger">*</span></label>
-                        <textarea name="description" class="form-control" rows="3" required></textarea>
+                    <div class="mb-2">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="description" class="form-control" rows="2" required></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tanggal Maintenance <span class="text-danger">*</span></label>
-                        <input type="date" name="maintenance_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label">Tanggal</label>
+                            <input type="date" name="maintenance_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Teknisi</label>
+                            <input type="text" name="technician" class="form-control">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Teknisi</label>
-                        <input type="text" name="technician" class="form-control" placeholder="Nama teknisi">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Biaya</label>
-                        <input type="number" name="cost" class="form-control" placeholder="0" step="1000">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Status <span class="text-danger">*</span></label>
-                        <select name="status" class="form-select" required>
+                    <div class="mt-2">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
                             <option value="pending">Pending</option>
-                            <option value="in_progress">Dalam Proses</option>
-                            <option value="completed">Selesai</option>
-                            <option value="cancelled">Dibatalkan</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
                         </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Catatan</label>
-                        <textarea name="notes" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -445,71 +401,30 @@
 
 @push('scripts')
 <script>
-function toggleCheckInOut(assetId) {
-    $.ajax({
-        url: '/admin/assets/' + assetId + '/toggle-checkinout',
-        method: 'POST',
-        data: { _token: '{{ csrf_token() }}' },
-        success: function(response) {
-            if (response.success) {
-                location.reload();
-            } else {
-                alert(response.message);
-            }
-        },
-        error: function() {
-            alert('Terjadi kesalahan');
-        }
-    });
-}
-
 function generateBarcode(assetId) {
     $.ajax({
         url: '/admin/assets/' + assetId + '/generate-barcode',
         method: 'POST',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
-            if (response.success) {
-                location.reload();
-            } else {
-                alert(response.message);
-            }
-        }
+            if(response.success) location.reload();
+            else alert(response.message);
+        },
+        error: function() { alert('Terjadi kesalahan'); }
     });
 }
 
-function showChanges(oldValues, newValues) {
-    let html = '<table class="table table-sm">';
-    for (let key in newValues) {
-        if (oldValues[key] !== newValues[key]) {
-            html += `
-                <tr>
-                    <td><strong>${key}</strong></td>
-                    <td><span class="text-danger">${oldValues[key] || '-'}</span></td>
-                    <td><i class="bi bi-arrow-right"></i></td>
-                    <td><span class="text-success">${newValues[key] || '-'}</span></td>
-                </tr>
-            `;
-        }
-    }
-    html += '</table>';
-    
-    $('#changesModal .modal-body').html(html);
-    $('#changesModal').modal('show');
+function toggleCheckInOut(assetId) {
+    $.ajax({
+        url: '/admin/assets/' + assetId + '/toggle-checkinout',
+        method: 'POST',
+        data: { _token: '{{ csrf_token() }}' },
+        success: function(response) {
+            if(response.success) location.reload();
+            else alert(response.message);
+        },
+        error: function() { alert('Terjadi kesalahan'); }
+    });
 }
 </script>
 @endpush
-
-<!-- Changes Modal -->
-<div class="modal fade" id="changesModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detail Perubahan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-            </div>
-        </div>
-    </div>
-</div>

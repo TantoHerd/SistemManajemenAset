@@ -209,7 +209,12 @@ class UserController extends Controller
      */
     public function export()
     {
-        return Excel::download(new UsersExport(), 'users_' . date('Y-m-d_His') . '.xlsx');
+        try {
+            $fileName = 'users_' . date('Y-m-d_His') . '.xlsx';
+            return Excel::download(new UsersExport(), $fileName);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal export: ' . $e->getMessage());
+        }
     }
 
     /**

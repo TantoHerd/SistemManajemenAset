@@ -11,6 +11,10 @@
     <a href="{{ route('admin.categories.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Tambah Kategori
     </a>
+    {{-- <a href="{{ route('admin.categories.specifications.index', $category) }}" 
+        class="btn btn-sm btn-info">
+            <i class="bx bx-list-check me-1"></i>Spesifikasi
+    </a> --}}
 @endsection
 
 @section('content')
@@ -63,6 +67,11 @@
                                     <li>
                                         <a class="dropdown-item" href="{{ route('admin.categories.edit', $category) }}">
                                             <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.categories.specifications.index', $category) }}">
+                                            <i class="bi bi-list-check"></i> Spesifikasi
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>

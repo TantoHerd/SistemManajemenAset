@@ -4,22 +4,20 @@
 @section('page-title', 'Daftar Aset IT')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item active" aria-current="page">Aset</li>
+    <li class="breadcrumb-item active">Aset</li>
 @endsection
 
 @section('header-actions')
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scanModal">
-            <i class="bi bi-upc-scan"></i> Scan Barcode
+            <i class="bi bi-upc-scan"></i> Scan QR Code
         </button>
         <a href="{{ route('admin.assets.create') }}" class="btn btn-success">
             <i class="bi bi-plus-lg"></i> Tambah Aset
         </a>
-         <!-- Tombol Import - PAKAI URL LANGSUNG -->
         <a href="{{ url('/assets/import') }}" class="btn btn-warning">
             <i class="bi bi-upload"></i> Import
         </a>
-        <!-- Tombol Export -->
         <div class="dropdown">
             <button class="btn btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
                 <i class="bi bi-download"></i> Export
@@ -51,58 +49,85 @@
     <div class="card-body">
         <form method="GET" action="{{ route('admin.assets.index') }}" id="filterForm">
             <div class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-2 col-sm-6">
                     <label class="form-label fw-semibold">Kategori</label>
                     <select name="category" class="form-select" onchange="this.form.submit()">
                         <option value="">Semua Kategori</option>
                         @foreach($categories as $category)
-                            <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
+                            <option value="{{ $category->id }}" {{ ($categoryFilter ?? request('category')) == $category->id ? 'selected' : '' }}>
                                 {{ $category->name }}
                             </option>
                         @endforeach
                     </select>
                 </div>
                 
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Lokasi</label>
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label fw-semibold">Lokasi (Induk)</label>
                     <select name="location" class="form-select" onchange="this.form.submit()">
                         <option value="">Semua Lokasi</option>
                         @foreach($locations as $location)
-                            <option value="{{ $location->id }}" {{ request('location') == $location->id ? 'selected' : '' }}>
+                            <option value="{{ $location->id }}" {{ ($locationFilter ?? request('location')) == $location->id ? 'selected' : '' }}>
                                 {{ $location->name }}
                             </option>
                         @endforeach
                     </select>
+                    {{-- <small class="text-muted">Menampilkan semua aset di lokasi ini & sub-lokasinya</small> --}}
                 </div>
                 
-                <div class="col-md-3">
+                <div class="col-md-2 col-sm-6">
                     <label class="form-label fw-semibold">Status</label>
                     <select name="status" class="form-select" onchange="this.form.submit()">
                         <option value="">Semua Status</option>
                         @foreach($statuses as $key => $value)
-                            <option value="{{ $key }}" {{ request('status') == $key ? 'selected' : '' }}>
+                            <option value="{{ $key }}" {{ ($statusFilter ?? request('status')) == $key ? 'selected' : '' }}>
                                 {{ $value }}
                             </option>
                         @endforeach
                     </select>
                 </div>
                 
-                <div class="col-md-3">
+                {{-- <div class="col-md-2 col-sm-6">
+                    <label class="form-label fw-semibold">Assign</label>
+                    <select name="assigned_to" class="form-select" onchange="this.form.submit()">
+                        <option value="">Semua User</option>
+                        @foreach($users as $user)
+                            <option value="{{ $user->id }}" {{ ($assignedToFilter ?? request('assigned_to')) == $user->id ? 'selected' : '' }}>
+                                {{ $user->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div> --}}
+                
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label fw-semibold">Tampilkan</label>
+                    <select name="per_page" class="form-select" onchange="this.form.submit()">
+                        <option value="10" {{ ($perPage ?? request('per_page', 15)) == 10 ? 'selected' : '' }}>10 Baris</option>
+                        <option value="15" {{ ($perPage ?? request('per_page', 15)) == 15 ? 'selected' : '' }}>15 Baris</option>
+                        <option value="25" {{ ($perPage ?? request('per_page', 15)) == 25 ? 'selected' : '' }}>25 Baris</option>
+                        <option value="50" {{ ($perPage ?? request('per_page', 15)) == 50 ? 'selected' : '' }}>50 Baris</option>
+                        <option value="100" {{ ($perPage ?? request('per_page', 15)) == 100 ? 'selected' : '' }}>100 Baris</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 col-sm-6">
                     <label class="form-label fw-semibold">Pencarian</label>
                     <div class="input-group">
                         <input type="text" name="search" class="form-control" 
-                               placeholder="Cari kode / nama / serial..." 
-                               value="{{ request('search') }}">
+                               placeholder="Cari kode/nama/serial..." 
+                               value="{{ $searchFilter ?? request('search') }}">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-search"></i>
                         </button>
-                        @if(request()->anyFilled(['category', 'location', 'status', 'search']))
-                            <a href="{{ route('admin.assets.index') }}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-repeat"></i>
-                            </a>
-                        @endif
                     </div>
                 </div>
+
+                {{-- <div class="row mt-3">
+                    <div class="col-12">
+                        <a href="{{ url('/admin/assets?reset=1') }}" class="btn btn-secondary" onclick="localStorage.clear(); sessionStorage.clear();">
+                            <i class="bi bi-arrow-repeat"></i> Reset Filter
+                        </a>
+                    </div>
+                </div> --}}
             </div>
         </form>
     </div>
@@ -122,8 +147,8 @@
                         <th>Nama Aset</th>
                         <th>Kategori</th>
                         <th>Lokasi</th>
-                        <th>Status</th>
                         <th>Assign</th>
+                        <th>Status</th>
                         {{-- <th class="text-end">Nilai</th> --}}
                         <th width="100" class="text-center">Aksi</th>
                     </tr>
@@ -150,21 +175,6 @@
                             {{ $asset->location->name ?? '-' }}
                         </td>
                         <td>
-                            @php
-                                $badgeClass = [
-                                    'available' => 'success',
-                                    'in_use' => 'primary',
-                                    'maintenance' => 'warning',
-                                    'damaged' => 'danger',
-                                    'disposed' => 'secondary'
-                                ][$asset->status] ?? 'secondary';
-                            @endphp
-                            <span class="badge bg-{{ $badgeClass }}-subtle text-{{ $badgeClass }} px-3 py-2 rounded-pill">
-                                {{ $asset->status_label }}
-                            </span>
-                        </td>
-                        <td>
-                            <!-- ASSIGN COLUMN -->
                             @if($asset->assignedTo)
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="avatar avatar-sm">
@@ -178,6 +188,8 @@
                                     </div>
                                     <div>
                                         <strong>{{ $asset->assignedTo->name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ $asset->assignedTo->email }}</small>
                                     </div>
                                 </div>
                             @else
@@ -185,6 +197,20 @@
                                     <i class="bi bi-person"></i> Belum diassign
                                 </span>
                             @endif
+                        </td>
+                        <td>
+                            @php
+                                $badgeClass = [
+                                    'available' => 'success',
+                                    'in_use' => 'primary',
+                                    'maintenance' => 'warning',
+                                    'damaged' => 'danger',
+                                    'disposed' => 'secondary'
+                                ][$asset->status] ?? 'secondary';
+                            @endphp
+                            <span class="badge bg-{{ $badgeClass }}-subtle text-{{ $badgeClass }} px-3 py-2 rounded-pill">
+                                {{ $asset->status_label }}
+                            </span>
                         </td>
                         {{-- <td class="text-end">
                             <span class="fw-semibold">{{ $asset->formatted_current_value }}</span>
@@ -234,7 +260,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center py-5">
+                        <td colspan="9" class="text-center py-5">
                             <i class="bi bi-inbox display-1 text-muted"></i>
                             <p class="text-muted mt-2">Belum ada data aset</p>
                             <a href="{{ route('admin.assets.create') }}" class="btn btn-sm btn-primary mt-2">
@@ -249,7 +275,7 @@
         
         <!-- Pagination -->
         <div class="card-footer bg-white">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                     <small class="text-muted">
                         Menampilkan {{ $assets->firstItem() ?? 0 }} - {{ $assets->lastItem() ?? 0 }} 
@@ -257,7 +283,7 @@
                     </small>
                 </div>
                 <div>
-                    {{ $assets->withQueryString()->links('pagination::bootstrap-5') }}
+                    {{ $assets->appends(request()->query())->links('pagination::bootstrap-5') }}
                 </div>
             </div>
         </div>
@@ -284,29 +310,28 @@
     </div>
 </div>
 
-<!-- Scan Modal -->
+<!-- Scan QR Code Modal -->
 <div class="modal fade" id="scanModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title">
-                    <i class="bi bi-upc-scan"></i> Scan Barcode Aset
+                    <i class="bi bi-upc-scan"></i> Scan QR Code Aset
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <div id="scanner-container" style="width: 100%; max-width: 400px; margin: 0 auto;">
-                    <div id="interactive" class="viewport" style="background: #000; border-radius: 10px; overflow: hidden;"></div>
-                </div>
-                <div id="scan-result" class="mt-3"></div>
+                <div id="qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+                <div id="qr-reader-results" class="mt-3"></div>
+                <div id="scan-result" class="mt-2"></div>
                 <p class="text-muted mt-2 small">
-                    <i class="bi bi-camera"></i> Arahkan kamera ke barcode aset
+                    <i class="bi bi-camera"></i> Arahkan kamera ke QR Code aset
                 </p>
                 <hr>
                 <div class="mt-2">
                     <label class="form-label small">Atau masukkan kode manual:</label>
                     <div class="input-group">
-                        <input type="text" id="manual-barcode" class="form-control" placeholder="Kode Aset">
+                        <input type="text" id="manual-qrcode" class="form-control" placeholder="Kode Aset">
                         <button class="btn btn-primary" id="manualCheckBtn">
                             <i class="bi bi-search"></i> Cek
                         </button>
@@ -317,17 +342,23 @@
     </div>
 </div>
 
-<!-- Result Modal -->
-<div class="modal fade" id="resultModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="bi bi-info-circle"></i> Detail Aset
+<!-- Result Modal - Mobile Friendly -->
+<div class="modal fade" id="resultModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 20px; margin: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-info-circle-fill text-primary"></i> Detail Aset
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="resultModalBody">
+            <div class="modal-body pt-0" id="resultModalBody" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Content akan diisi JavaScript -->
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary w-100 py-2 rounded-pill" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Tutup
+                </button>
             </div>
         </div>
     </div>
@@ -336,6 +367,10 @@
 
 @push('styles')
 <style>
+    .avatar-sm {
+        width: 30px;
+        height: 30px;
+    }
     .btn-group .dropdown-toggle::after {
         display: none;
     }
@@ -356,7 +391,7 @@
 @endpush
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/quagga2@1.8.2/dist/quagga.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 $(document).ready(function() {
     // Select All
@@ -392,11 +427,9 @@ $(document).ready(function() {
             return;
         }
         
-        // Buat form untuk submit
         let form = $('<form action="{{ route("admin.assets.print-labels") }}" method="POST" target="_blank"></form>');
         form.append('<input type="hidden" name="_token" value="{{ csrf_token() }}">');
         
-        // Tambahkan setiap ID sebagai input terpisah
         selectedIds.forEach(function(id) {
             form.append('<input type="hidden" name="asset_ids[]" value="' + id + '">');
         });
@@ -406,7 +439,6 @@ $(document).ready(function() {
         form.remove();
     });
     
-    // Clear selection
     $('#clearSelection').on('click', function() {
         $('.asset-checkbox').prop('checked', false);
         $('#selectAll').prop('checked', false);
@@ -414,69 +446,70 @@ $(document).ready(function() {
     });
     
     // Scanner
-    let scannerActive = false;
+    let html5QrCode = null;
     
+    // Start scanner when modal opens
     $('#scanModal').on('shown.bs.modal', function() {
         startScanner();
     });
     
+    // Stop scanner when modal closes
     $('#scanModal').on('hidden.bs.modal', function() {
         stopScanner();
     });
     
     function startScanner() {
-        if (scannerActive) return;
-        
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: document.querySelector('#interactive'),
-                constraints: {
-                    width: { min: 400 },
-                    height: { min: 300 },
-                    facingMode: "environment"
-                },
-            },
-            locator: {
-                patchSize: "medium",
-                halfSample: true
-            },
-            numOfWorkers: 2,
-            decoder: {
-                readers: ["code_128_reader"]
-            }
-        }, function(err) {
-            if (err) {
-                console.error(err);
-                $('#scan-result').html('<div class="alert alert-danger">Gagal mengakses kamera</div>');
-                return;
-            }
-            Quagga.start();
-            scannerActive = true;
-        });
-        
-        Quagga.onDetected(function(result) {
-            let code = result.codeResult.code;
-            $('#scan-result').html('<div class="alert alert-info">Scan: ' + code + '</div>');
+        if (html5QrCode) {
             stopScanner();
-            $('#scanModal').modal('hide');
-            checkBarcode(code);
+        }
+        
+        html5QrCode = new Html5Qrcode("qr-reader");
+        
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        };
+        
+        html5QrCode.start(
+            { facingMode: "environment" }, // kamera belakang
+            config,
+            (decodedText, decodedResult) => {
+                // Success callback
+                console.log("QR Code scanned:", decodedText);
+                $('#scan-result').html('<div class="alert alert-success">QR Code terdeteksi: ' + decodedText + '</div>');
+                stopScanner();
+                $('#scanModal').modal('hide');
+                checkQRCode(decodedText);
+            },
+            (errorMessage) => {
+                // Error callback (ignore, just for debugging)
+                // console.log(errorMessage);
+            }
+        ).catch((err) => {
+            console.error("Gagal start scanner:", err);
+            $('#scan-result').html('<div class="alert alert-danger">Gagal mengakses kamera: ' + err + '</div>');
         });
     }
     
     function stopScanner() {
-        if (scannerActive) {
-            Quagga.stop();
-            scannerActive = false;
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode = null;
+            }).catch((err) => {
+                console.error("Gagal stop scanner:", err);
+            });
         }
     }
     
-    function checkBarcode(barcode) {
+    function checkQRCode(qrCode) {
         $.ajax({
             url: '{{ route("admin.assets.scan") }}',
             method: 'POST',
-            data: { barcode: barcode },
+            data: { barcode: qrCode },
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
             success: function(response) {
                 if (response.success) {
                     showAssetDetail(response.asset);
@@ -485,8 +518,8 @@ $(document).ready(function() {
                     $('#resultModal').modal('show');
                 }
             },
-            error: function() {
-                $('#resultModalBody').html('<div class="alert alert-danger">Terjadi kesalahan</div>');
+            error: function(xhr) {
+                $('#resultModalBody').html('<div class="alert alert-danger">Terjadi kesalahan: Aset tidak ditemukan</div>');
                 $('#resultModal').modal('show');
             }
         });
@@ -495,44 +528,73 @@ $(document).ready(function() {
     function showAssetDetail(asset) {
         let checkBtn = '';
         if (asset.status === 'available') {
-            checkBtn = '<button class="btn btn-success w-100 mt-3" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-right"></i> Checkout Aset</button>';
+            checkBtn = '<button class="btn btn-success w-100 py-2 rounded-pill mt-2" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-right"></i> Checkout Aset</button>';
         } else if (asset.status === 'in_use') {
-            checkBtn = '<button class="btn btn-warning w-100 mt-3" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-in-left"></i> Checkin Aset</button>';
+            checkBtn = '<button class="btn btn-warning w-100 py-2 rounded-pill mt-2" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-in-left"></i> Checkin Aset</button>';
         }
         
         $('#resultModalBody').html(`
             <div class="text-center mb-3">
-                <span class="badge bg-${asset.status_badge_class.split('-')[1]} px-3 py-2 rounded-pill">${asset.status_label}</span>
+                <span class="badge bg-${asset.status_badge_class} px-3 py-2 rounded-pill fs-6">${asset.status_label}</span>
             </div>
-            <table class="table table-sm table-borderless">
-                <tr>
-                    <td width="40%"><strong>Kode Aset</strong></td>
-                    <td>${asset.asset_code}</td>
-                </tr>
-                <tr>
-                    <td><strong>Nama Aset</strong></td>
-                    <td>${asset.name}</td>
-                </tr>
-                <tr>
-                    <td><strong>Serial Number</strong></td>
-                    <td>${asset.serial_number || '-'}</td>
-                </tr>
-                <tr>
-                    <td><strong>Lokasi</strong></td>
-                    <td><i class="bi bi-geo-alt"></i> ${asset.location?.full_path || asset.location?.name || '-'}</td>
-                </tr>
-                <tr>
-                    <td><strong>Nilai Beli</strong></td>
-                    <td>${asset.formatted_purchase_price}</td>
-                </tr>
-                <tr>
-                    <td><strong>Nilai Saat Ini</strong></td>
-                    <td class="fw-bold">${asset.formatted_current_value}</td>
-                </tr>
-            </table>
+            
+            <div class="card bg-light border-0 rounded-3 mb-2">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-5 text-muted small">Kode Aset</div>
+                        <div class="col-7 fw-semibold">${asset.asset_code}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-light border-0 rounded-3 mb-2">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-5 text-muted small">Nama Aset</div>
+                        <div class="col-7 fw-semibold">${asset.name}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-light border-0 rounded-3 mb-2">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-5 text-muted small">Serial Number</div>
+                        <div class="col-7">${asset.serial_number || '-'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-light border-0 rounded-3 mb-2">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-5 text-muted small">Lokasi</div>
+                        <div class="col-7">${asset.location?.full_path || asset.location?.name || '-'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-light border-0 rounded-3 mb-2">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-5 text-muted small">Nilai Beli</div>
+                        <div class="col-7">${asset.formatted_purchase_price}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-light border-0 rounded-3 mb-2">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-5 text-muted small">Nilai Saat Ini</div>
+                        <div class="col-7 fw-bold text-primary">${asset.formatted_current_value}</div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="d-flex gap-2 mt-3">
-                <a href="/admin/assets/${asset.id}" class="btn btn-info flex-grow-1">
-                    <i class="bi bi-eye"></i> Detail Lengkap
+                <a href="/admin/assets/${asset.id}" class="btn btn-info flex-grow-1 py-2 rounded-pill">
+                    <i class="bi bi-eye"></i> Detail
                 </a>
                 ${checkBtn}
             </div>
@@ -541,11 +603,11 @@ $(document).ready(function() {
     }
     
     $('#manualCheckBtn').on('click', function() {
-        let barcode = $('#manual-barcode').val();
-        if (barcode) {
+        let qrCode = $('#manual-qrcode').val();
+        if (qrCode) {
             $('#scanModal').modal('hide');
-            checkBarcode(barcode);
-            $('#manual-barcode').val('');
+            checkQRCode(qrCode);
+            $('#manual-qrcode').val('');
         } else {
             alert('Masukkan kode aset');
         }
@@ -570,6 +632,12 @@ $(document).ready(function() {
         });
     };
     
+    // Pastikan modal ditutup dengan benar
+    $('#scanModal').on('hidden.bs.modal', function() {
+        stopScanner();
+        $('#scan-result').html('');
+    });
+    
     $('.checkinout-btn').on('click', function() {
         let assetId = $(this).data('id');
         let status = $(this).data('status');
@@ -586,28 +654,19 @@ $(document).ready(function() {
             alert('Aset tidak dapat di-checkin/out');
         }
     });
-
-    // Export Excel with current filters
+    
+    // Export Excel
     $('#exportExcelBtn').on('click', function(e) {
         e.preventDefault();
-        
         let params = new URLSearchParams(window.location.search);
         let url = '{{ route("admin.assets.export") }}?' + params.toString();
-        
         window.location.href = url;
     });
 
-    // Update batch actions visibility
-    function updateBatchActions() {
-        let count = $('.asset-checkbox:checked').length;
-        $('#selectedCount').text(count);
-        
-        if (count > 0) {
-            $('#batchActions').fadeIn();
-        } else {
-            $('#batchActions').fadeOut();
-        }
-    }
+    $('#resetFilterBtn').on('click', function() {
+        // Hapus session dengan memanggil URL
+        window.location.href = '{{ route("admin.assets.reset-filter") }}';
+    });
 });
 </script>
 @endpush

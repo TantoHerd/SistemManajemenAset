@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\User;
+use App\Models\AssetSpecification;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
@@ -25,36 +26,91 @@ class AssetController extends Controller
      */
     public function index(Request $request)
     {
+        // Simpan filter ke session (tanpa assigned_to)
+        if ($request->has('category') || $request->has('location') || $request->has('status') || $request->has('search')) {
+            session([
+                'asset_filter_category' => $request->category,
+                'asset_filter_location' => $request->location,
+                'asset_filter_status' => $request->status,
+                'asset_filter_search' => $request->search,
+            ]);
+        }
+        
+        // Ambil nilai dari session
+        $categoryFilter = session('asset_filter_category', $request->category);
+        $locationFilter = session('asset_filter_location', $request->location);
+        $statusFilter = session('asset_filter_status', $request->status);
+        $searchFilter = session('asset_filter_search', $request->search);
+        
+        // Jumlah baris per halaman
+        $perPage = $request->get('per_page', session('asset_per_page', 15));
+        session(['asset_per_page' => $perPage]);
+        
         $query = Asset::with(['category', 'location', 'assignedTo']);
         
-        // Filter by category
-        if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+        // Apply filters
+        if ($categoryFilter) {
+            $query->where('category_id', $categoryFilter);
         }
         
-        // Filter by location
-        if ($request->filled('location')) {
-            $query->where('location_id', $request->location);
+        // Filter lokasi induk - mencakup semua sub lokasi
+        if ($locationFilter) {
+            $locationIds = $this->getLocationIds($locationFilter);
+            $query->whereIn('location_id', $locationIds);
         }
         
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
         }
         
-        // Search
-        if ($request->filled('search')) {
-            $query->search($request->search);
+        if ($searchFilter) {
+            $query->where(function($q) use ($searchFilter) {
+                $q->where('asset_code', 'like', "%{$searchFilter}%")
+                  ->orWhere('name', 'like', "%{$searchFilter}%")
+                  ->orWhere('serial_number', 'like', "%{$searchFilter}%");
+            });
         }
         
-        $assets = $query->latest()->paginate(15);
+        $assets = $query->latest()->paginate($perPage);
         
-        // Data for filters
+        // Data untuk filter
+        $locations = Location::whereNull('parent_id')->orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
-        $locations = Location::orderBy('name')->get();
         $statuses = Asset::$statuses;
         
-        return view('admin.assets.index', compact('assets', 'categories', 'locations', 'statuses'));
+        return view('admin.assets.index', compact('assets', 'categories', 'locations', 'statuses', 
+                    'categoryFilter', 'locationFilter', 'statusFilter', 'searchFilter', 'perPage'));
+    }
+    
+    /**
+     * Mendapatkan semua ID lokasi dari lokasi induk (termasuk sub-lokasi)
+     */
+    private function getLocationIds($parentId)
+    {
+        $ids = [$parentId];
+        $children = Location::where('parent_id', $parentId)->get();
+        
+        foreach ($children as $child) {
+            $ids = array_merge($ids, $this->getLocationIds($child->id));
+        }
+        
+        return $ids;
+    }
+    
+    public function resetFilter()
+    {
+        // Hapus semua session filter
+        session()->forget([
+            'asset_filter_category', 
+            'asset_filter_location', 
+            'asset_filter_status', 
+            'asset_filter_assigned_to', 
+            'asset_filter_search',
+            'asset_per_page'
+        ]);
+        
+        // Juga hapus dari request
+        return response()->json(['success' => true]);
     }
 
     /**
@@ -62,7 +118,10 @@ class AssetController extends Controller
      */
     public function create()
     {
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::with(['activeSpecifications' => function($query) {
+            $query->orderBy('sort_order');
+        }])->orderBy('name')->get();
+        
         $locations = Location::orderBy('name')->get();
         $users = User::orderBy('name')->get();
         $statuses = Asset::$statuses;
@@ -91,6 +150,9 @@ class AssetController extends Controller
             'useful_life_months' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
             'warranty_expiry' => 'nullable|date',
+            // Spesifikasi tidak wajib di validasi karena dinamis
+            'specifications' => 'nullable|array',
+            'specifications.*' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -102,7 +164,7 @@ class AssetController extends Controller
         // Get category for default useful life
         $category = Category::find($request->category_id);
         
-        $data = $request->all();
+        $data = $request->except(['specifications']);
         
         // Set default useful life from category if not provided
         if (empty($data['useful_life_months'])) {
@@ -124,6 +186,11 @@ class AssetController extends Controller
         
         $asset = Asset::create($data);
         
+        // ========== SIMPAN SPESIFIKASI ==========
+        if ($request->has('specifications')) {
+            $this->saveSpecifications($asset, $request->specifications, $category);
+        }
+        
         // Generate barcode image
         $this->generateBarcodeImage($asset);
     
@@ -136,7 +203,7 @@ class AssetController extends Controller
      */
     public function show(Asset $asset)
     {
-        $asset->load(['category', 'location', 'assignedTo', 'maintenances']);
+        $asset->load(['category', 'location', 'assignedTo', 'maintenances', 'specifications']);
         
         return view('admin.assets.show', compact('asset'));
     }
@@ -146,12 +213,19 @@ class AssetController extends Controller
      */
     public function edit(Asset $asset)
     {
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::with(['activeSpecifications' => function($query) {
+            $query->orderBy('sort_order');
+        }])->orderBy('name')->get();
+        
         $locations = Location::orderBy('name')->get();
         $users = User::orderBy('name')->get();
         $statuses = Asset::$statuses;
         
-        return view('admin.assets.edit', compact('asset', 'categories', 'locations', 'users', 'statuses'));
+        // Load specifications untuk aset ini
+        $asset->load('specifications');
+        $assetSpecs = $asset->specifications->pluck('spec_value', 'spec_key')->toArray();
+        
+        return view('admin.assets.edit', compact('asset', 'categories', 'locations', 'users', 'statuses', 'assetSpecs'));
     }
 
     /**
@@ -175,6 +249,9 @@ class AssetController extends Controller
             'useful_life_months' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
             'warranty_expiry' => 'nullable|date',
+            // Spesifikasi
+            'specifications' => 'nullable|array',
+            'specifications.*' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -183,7 +260,7 @@ class AssetController extends Controller
                              ->withInput();
         }
 
-        $data = $request->all();
+        $data = $request->except(['specifications']);
         
         // Recalculate current value if purchase price or useful life changed
         if ($asset->purchase_price != $data['purchase_price'] || 
@@ -192,6 +269,28 @@ class AssetController extends Controller
         }
         
         $asset->update($data);
+        
+        // ========== UPDATE SPESIFIKASI ==========
+        $category = Category::find($request->category_id);
+        
+        // Hapus spesifikasi lama yang tidak ada di request baru
+        if ($request->has('specifications')) {
+            $requestedKeys = array_keys(array_filter($request->specifications, function($value) {
+                return $value !== null && $value !== '';
+            }));
+        } else {
+            $requestedKeys = [];
+        }
+        
+        // Hapus spesifikasi yang tidak dikirim
+        $asset->specifications()
+              ->whereNotIn('spec_key', $requestedKeys)
+              ->delete();
+        
+        // Simpan/update spesifikasi baru
+        if ($request->has('specifications')) {
+            $this->saveSpecifications($asset, $request->specifications, $category);
+        }
         
         // Regenerate barcode if asset code changed
         if ($asset->wasChanged('asset_code')) {
@@ -213,10 +312,86 @@ class AssetController extends Controller
                              ->with('error', 'Aset tidak dapat dihapus karena memiliki riwayat maintenance');
         }
         
+        // Hapus spesifikasi terkait
+        $asset->specifications()->delete();
+        
         $asset->delete();
         
         return redirect()->route('admin.assets.index')
                          ->with('success', 'Aset berhasil dihapus');
+    }
+
+    // ============================================
+    // SPESIFIKASI METHODS
+    // ============================================
+
+    /**
+     * Simpan spesifikasi aset.
+     */
+    private function saveSpecifications(Asset $asset, array $specifications, Category $category)
+    {
+        foreach ($specifications as $key => $value) {
+            // Cek apakah spesifikasi ini milik kategori yang dipilih
+            $spec = $category->activeSpecifications()->where('key', $key)->first();
+            
+            if (!$spec) {
+                continue; // Skip jika spesifikasi tidak valid untuk kategori ini
+            }
+            
+            // Skip jika tidak required dan nilainya kosong
+            if (!$spec->is_required && (is_null($value) || $value === '')) {
+                continue;
+            }
+            
+            // Simpan atau update spesifikasi
+            AssetSpecification::updateOrCreate(
+                [
+                    'asset_id' => $asset->id,
+                    'spec_key' => $key
+                ],
+                [
+                    'spec_value' => $value
+                ]
+            );
+        }
+    }
+
+    /**
+     * Get specifications by category (AJAX).
+     */
+    public function getSpecificationsByCategory(Request $request)
+    {
+        $categoryId = $request->category_id;
+        
+        if (!$categoryId) {
+            return response()->json(['specifications' => []]);
+        }
+        
+        $category = Category::with(['activeSpecifications' => function($query) {
+            $query->orderBy('sort_order');
+        }])->find($categoryId);
+        
+        if (!$category) {
+            return response()->json(['specifications' => []]);
+        }
+        
+        $specifications = $category->activeSpecifications->map(function($spec) {
+            return [
+                'key' => $spec->key,
+                'label' => $spec->label,
+                'type' => $spec->type,
+                'options' => $spec->options,
+                'is_required' => $spec->is_required,
+                'placeholder' => $spec->placeholder,
+                'help_text' => $spec->help_text,
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'specifications' => $specifications,
+            'category_name' => $category->name
+        ]);
     }
 
     /**
@@ -416,7 +591,6 @@ class AssetController extends Controller
         return view('admin.assets.print-label', compact('asset'));
     }
 
-
     /**
      * Print labels for multiple assets.
      */
@@ -586,5 +760,4 @@ class AssetController extends Controller
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
-
 }

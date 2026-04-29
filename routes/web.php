@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\MaintenanceController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\SettingController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\CategorySpecificationController;
 
 // Halaman utama redirect ke dashboard
 Route::get('/', function () {
@@ -54,9 +55,24 @@ Route::middleware(['auth'])->group(function () {
         
         // Categories
         Route::resource('categories', CategoryController::class);
+
+        // Spesifikasi
+        Route::prefix('categories/{category}/specifications')
+            ->name('categories.specifications.')
+            ->group(function () {
+                Route::get('/', [CategorySpecificationController::class, 'index'])->name('index');
+                Route::post('/', [CategorySpecificationController::class, 'store'])->name('store');
+                Route::put('/{specification}', [CategorySpecificationController::class, 'update'])->name('update');
+                Route::delete('/{specification}', [CategorySpecificationController::class, 'destroy'])->name('destroy');
+                Route::post('/{specification}/toggle-active', [CategorySpecificationController::class, 'toggleActive'])->name('toggle-active');
+                Route::post('/update-order', [CategorySpecificationController::class, 'updateOrder'])->name('update-order');
+            });
         
         // Locations
         Route::resource('locations', LocationController::class);
+
+        // Reset Filter
+        // Route::get('/reset-asset-filter', [App\Http\Controllers\Admin\AssetController::class, 'resetFilter'])->name('assets.reset.filter');
         
         // Assets
         Route::resource('assets', AssetController::class);
@@ -68,14 +84,19 @@ Route::middleware(['auth'])->group(function () {
         Route::post('assets/{asset}/generate-barcode', [AssetController::class, 'generateBarcode'])->name('assets.generate-barcode');
         Route::get('assets/export/excel', [AssetController::class, 'export'])->name('assets.export');
         Route::get('amortization/export', [AssetController::class, 'exportAmortization'])->name('amortization.export');
-        
+        Route::get('assets/reset-filter', [AssetController::class, 'resetFilter'])->name('assets.reset-filter');
+
+        // AJAX: Get specifications by category
+        Route::get('assets/specifications/by-category', [AssetController::class, 'getSpecificationsByCategory'])
+         ->name('assets.specifications.by-category');
+
         // Users
         Route::resource('users', UserController::class);
         Route::patch('users/{user}/password', [UserController::class, 'updatePassword'])->name('users.password');
         Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
         
         // User Import & Export
-        Route::get('/users/export', [UserController::class, 'export'])->name('users.export');
+        Route::get('users/export', [UserController::class, 'export'])->name('users.export');
         
         // MAINTENANCE - Route spesifik HARUS di atas Route::resource
         Route::get('maintenances/schedule', [MaintenanceController::class, 'schedule'])->name('maintenances.schedule');

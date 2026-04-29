@@ -17,6 +17,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <style>
         /* CSS styles sama seperti sebelumnya */
@@ -309,6 +311,28 @@
             .main-content { margin-left: 0; }
             .menu-toggle { display: block; }
         }
+
+        /* Footer Styles */
+        .footer {
+            position: relative;
+            bottom: 0;
+            width: 100%;
+            font-size: 0.85rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content-wrapper {
+            flex: 1;
+        }
+
+        .footer {
+            margin-top: auto;
+        }
     </style>
     
     @stack('styles')
@@ -565,11 +589,32 @@
         @endif
 
         @yield('content')
+
+        <!-- Footer -->
+        <footer class="footer mt-auto py-3 bg-light border-top">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
+                        <span class="text-muted">
+                            &copy; {{ date('Y') }} {{ $companyName ?? 'PT. NAMA PERUSAHAAN' }}
+                        </span>
+                    </div>
+                    <div class="col-md-6 text-center text-md-end">
+                        <span class="text-muted">
+                            <i class="bi bi-box-seam"></i> {{ $systemName }} v1.0
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </footer>
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
     document.getElementById('menuToggle')?.addEventListener('click', function() {

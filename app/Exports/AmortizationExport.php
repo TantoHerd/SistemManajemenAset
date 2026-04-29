@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Asset;
+use App\Helpers\SettingHelper;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -29,10 +30,14 @@ class AmortizationExport implements
     protected $totalPurchaseValue;
     protected $totalCurrentValue;
     protected $totalDepreciation;
+    protected $companyName;
+    protected $systemName;
 
     public function __construct()
     {
         $this->exportDate = now();
+        $this->companyName = SettingHelper::getCompanyName();
+        $this->systemName = SettingHelper::getSystemName();
         
         $assets = Asset::all();
         $this->totalPurchaseValue = $assets->sum('purchase_price');
@@ -110,14 +115,14 @@ class AmortizationExport implements
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet;
                 $lastRow = $sheet->getHighestRow();
-                $lastColumn = $sheet->getHighestColumn();
+                $lastColumn = 'N';
                 
                 // Title
                 $sheet->insertNewRowBefore(1, 4);
                 $sheet->mergeCells('A1:N1');
-                $sheet->setCellValue('A1', 'PT. NAMA PERUSAHAAN');
+                $sheet->setCellValue('A1', $this->companyName);
                 $sheet->getStyle('A1')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '4361EE']],
+                    'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1E3A5F']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 
@@ -151,8 +156,7 @@ class AmortizationExport implements
                 
                 // Header
                 $headerRow = 5;
-                $headerRange = 'A' . $headerRow . ':' . $lastColumn . $headerRow;
-                $sheet->getStyle($headerRange)->applyFromArray([
+                $sheet->getStyle('A' . $headerRow . ':' . $lastColumn . $headerRow)->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '28A745']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -166,7 +170,7 @@ class AmortizationExport implements
                 // Footer
                 $footerRow = $lastRow + 2;
                 $sheet->mergeCells('A' . $footerRow . ':' . $lastColumn . $footerRow);
-                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s'));
+                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s') . ' | ' . $this->systemName);
                 $sheet->getStyle('A' . $footerRow)->applyFromArray([
                     'font' => ['size' => 9, 'italic' => true, 'color' => ['rgb' => '6C757D']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Asset;
+use App\Helpers\SettingHelper;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -16,7 +17,6 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class AssetsExport implements 
     FromCollection, 
@@ -33,11 +33,25 @@ class AssetsExport implements
     protected $totalValue;
     protected $totalPurchaseValue;
     protected $exportDate;
+    protected $companyName;
+    protected $systemName;
 
     public function __construct($filters = [])
     {
         $this->filters = $filters;
         $this->exportDate = now();
+        
+        // Ambil langsung dari database
+        try {
+            $company = \App\Models\Setting::where('key', 'company_name')->first();
+            $this->companyName = $company ? $company->value : 'PT. NAMA PERUSAHAAN';
+            
+            $system = \App\Models\Setting::where('key', 'system_name')->first();
+            $this->systemName = $system ? $system->value : 'Sistem Manajemen Aset IT';
+        } catch (\Exception $e) {
+            $this->companyName = 'PT. NAMA PERUSAHAAN';
+            $this->systemName = 'Sistem Manajemen Aset IT';
+        }
     }
 
     public function collection()
@@ -49,7 +63,9 @@ class AssetsExport implements
         }
 
         if (!empty($this->filters['location'])) {
-            $query->where('location_id', $this->filters['location']);
+            // Filter lokasi induk dengan semua sub-lokasi
+            $locationIds = $this->getLocationIds($this->filters['location']);
+            $query->whereIn('location_id', $locationIds);
         }
 
         if (!empty($this->filters['status'])) {
@@ -73,18 +89,30 @@ class AssetsExport implements
         return $assets;
     }
 
+    private function getLocationIds($parentId)
+    {
+        $ids = [$parentId];
+        $children = \App\Models\Location::where('parent_id', $parentId)->get();
+        
+        foreach ($children as $child) {
+            $ids = array_merge($ids, $this->getLocationIds($child->id));
+        }
+        
+        return $ids;
+    }
+
     public function properties(): array
     {
         return [
-            'creator'        => 'Sistem Manajemen Aset IT',
-            'lastModifiedBy' => 'Sistem Manajemen Aset IT',
+            'creator'        => $this->systemName,
+            'lastModifiedBy' => $this->systemName,
             'title'          => 'Laporan Data Aset',
             'description'    => 'Laporan lengkap data aset IT perusahaan',
             'subject'        => 'Data Aset',
             'keywords'       => 'aset, inventory, it asset, management',
             'category'       => 'Laporan',
             'manager'        => 'IT Department',
-            'company'        => 'PT. INDUKSARANA KEMASINDO',
+            'company'        => $this->companyName,
         ];
     }
 
@@ -165,9 +193,9 @@ class AssetsExport implements
                 // HEADER (4 baris pertama)
                 $sheet->insertNewRowBefore(1, 4);
                 
-                // Baris 1: Nama Perusahaan
+                // Baris 1: Nama Perusahaan (dari konfigurasi)
                 $sheet->mergeCells('A1:T1');
-                $sheet->setCellValue('A1', 'PT. NAMA PERUSAHAAN');
+                $sheet->setCellValue('A1', $this->companyName);
                 $sheet->getStyle('A1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1E3A5F']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -254,14 +282,14 @@ class AssetsExport implements
                 $currencyColumns = ['M', 'N', 'P'];
                 foreach ($currencyColumns as $col) {
                     $sheet->getStyle($col . $dataStartRow . ':' . $col . $dataEndRow)
-                        ->getNumberFormat()
-                        ->setFormatCode('#,##0');
+                          ->getNumberFormat()
+                          ->setFormatCode('#,##0');
                 }
                 
                 // Format Persentase
                 $sheet->getStyle('Q' . $dataStartRow . ':' . 'Q' . $dataEndRow)
-                    ->getNumberFormat()
-                    ->setFormatCode('0.00"%";');
+                      ->getNumberFormat()
+                      ->setFormatCode('0.00"%";');
                 
                 // Auto-size kolom
                 foreach (range('A', $lastColumn) as $col) {
@@ -271,34 +299,19 @@ class AssetsExport implements
                 // Freeze header
                 $sheet->freezePane('A' . ($headerRow + 1));
                 
-                // Auto filter - TAMBAHKAN VARIABLE $headerRange
+                // Auto filter
                 $headerRange = 'A' . $headerRow . ':' . $lastColumn . $headerRow;
                 $sheet->setAutoFilter($headerRange);
                 
-                // ============================================
-                // FOOTER - DITEMPATKAN SETELAH DATA TERAKHIR
-                // ============================================
+                // FOOTER (dari konfigurasi)
                 $footerRow = $dataEndRow + 2;
                 $sheet->mergeCells('A' . $footerRow . ':' . $lastColumn . $footerRow);
-                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s') . ' | Sistem Manajemen Aset IT');
+                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s') . ' | ' . $this->systemName);
                 $sheet->getStyle('A' . $footerRow)->applyFromArray([
                     'font' => ['size' => 9, 'italic' => true, 'color' => ['rgb' => '6C757D']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
             },
         ];
-    }
-    
-    private function getStatusColor($status)
-    {
-        $colors = [
-            'Tersedia' => '28A745',
-            'Sedang Dipakai' => '007BFF',
-            'Perbaikan' => 'FFC107',
-            'Rusak' => 'DC3545',
-            'Dihapuskan' => '6C757D',
-        ];
-        
-        return $colors[$status] ?? '000000';
     }
 }

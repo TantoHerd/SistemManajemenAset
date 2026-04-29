@@ -18,12 +18,22 @@ class SettingHelper
     
     public static function getCompanyName()
     {
-        return self::get('company_name', 'PT. NAMA PERUSAHAAN');
+        try {
+            $setting = Setting::where('key', 'company_name')->first();
+            return $setting ? $setting->value : 'PT. NAMA PERUSAHAAN';
+        } catch (\Exception $e) {
+            return 'PT. NAMA PERUSAHAAN';
+        }
     }
     
     public static function getSystemName()
     {
-        return self::get('system_name', 'Sistem Manajemen Aset IT');
+        try {
+            $setting = Setting::where('key', 'system_name')->first();
+            return $setting ? $setting->value : 'Sistem Manajemen Aset IT';
+        } catch (\Exception $e) {
+            return 'Sistem Manajemen Aset IT';
+        }
     }
     
     public static function getCompanyLogo()

@@ -131,8 +131,12 @@
                                     @foreach($categories as $category)
                                         <option value="{{ $category->id }}" 
                                                 data-life="{{ $category->useful_life_months }}"
+                                                data-has-specs="{{ $category->activeSpecifications->count() > 0 ? 'true' : 'false' }}"
                                                 {{ old('category_id') == $category->id ? 'selected' : '' }}>
                                             {{ $category->name }} ({{ $category->useful_life_months }} bulan)
+                                            @if($category->activeSpecifications->count() > 0)
+                                                • {{ $category->activeSpecifications->count() }} spesifikasi
+                                            @endif
                                         </option>
                                     @endforeach
                                 </select>
@@ -201,6 +205,37 @@
                     </div>
                     
                     <hr>
+                    
+                    <!-- ============================================ -->
+                    <!-- SPESIFIKASI DINAMIS -->
+                    <!-- ============================================ -->
+                    <div id="specificationsContainer" style="display: none;">
+                        <h6 class="mb-3">
+                            <i class="bi bi-list-check text-info"></i> 
+                            Spesifikasi: <span id="specCategoryName" class="text-primary fw-bold"></span>
+                            <span class="badge bg-info ms-2" id="specCount">0</span>
+                        </h6>
+                        
+                        <div class="card mb-3 border-start border-info border-3">
+                            <div class="card-body">
+                                <div id="specificationsFields" class="row">
+                                    <!-- Dynamic fields akan dimuat di sini via AJAX -->
+                                </div>
+                                <div id="noSpecMessage" class="text-center py-3 text-muted" style="display: none;">
+                                    <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                                    <p class="mb-0">Tidak ada spesifikasi untuk kategori ini</p>
+                                </div>
+                                <div id="specLoading" class="text-center py-3" style="display: none;">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2 mb-0">Memuat spesifikasi...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                    </div>
                     
                     <!-- Informasi Finansial -->
                     <h6 class="mb-3">
@@ -315,15 +350,209 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    // Auto-fill useful life months when category changes
-    $('#category_id').on('change', function() {
-        let selectedOption = $(this).find(':selected');
-        let usefulLife = selectedOption.data('life');
+    
+    // ============================================
+    // SPESIFIKASI DINAMIS
+    // ============================================
+    
+    /**
+     * Load spesifikasi via AJAX ketika kategori dipilih
+     */
+    function loadSpecifications(categoryId, categoryName) {
+        const container = $('#specificationsContainer');
+        const fieldsContainer = $('#specificationsFields');
+        const noSpecMessage = $('#noSpecMessage');
+        const specLoading = $('#specLoading');
+        const specCount = $('#specCount');
+        const specCategoryName = $('#specCategoryName');
         
+        // Reset
+        fieldsContainer.empty();
+        noSpecMessage.hide();
+        
+        if (!categoryId) {
+            container.hide();
+            return;
+        }
+        
+        // Show container & loading
+        container.show();
+        specLoading.show();
+        specCategoryName.text(categoryName);
+        
+        $.ajax({
+            url: '{{ route("admin.assets.specifications.by-category") }}',
+            type: 'GET',
+            data: { category_id: categoryId },
+            dataType: 'json',
+            success: function(response) {
+                specLoading.hide();
+                
+                if (!response.specifications || response.specifications.length === 0) {
+                    noSpecMessage.show();
+                    specCount.text('0');
+                    return;
+                }
+                
+                const specifications = response.specifications;
+                specCount.text(specifications.length);
+                
+                // Render setiap spesifikasi
+                specifications.forEach(function(spec) {
+                    const fieldHtml = generateSpecField(spec);
+                    fieldsContainer.append(fieldHtml);
+                });
+            },
+            error: function(xhr) {
+                specLoading.hide();
+                fieldsContainer.html(`
+                    <div class="col-12">
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            Gagal memuat spesifikasi. Silakan coba lagi.
+                        </div>
+                    </div>
+                `);
+                console.error('Error loading specifications:', xhr);
+            }
+        });
+    }
+    
+    /**
+     * Generate HTML field untuk spesifikasi
+     */
+    function generateSpecField(spec) {
+        const fieldName = `specifications[${spec.key}]`;
+        const requiredAttr = spec.is_required ? 'required' : '';
+        const requiredLabel = spec.is_required ? ' <span class="text-danger">*</span>' : '';
+        const colClass = spec.type === 'textarea' ? 'col-12' : 'col-md-6';
+        
+        // Ambil old value jika ada
+        const oldValue = '{{ old("specifications") }}' !== '' ? 
+                         @json(old('specifications'))[spec.key] || '' : '';
+        
+        let fieldHtml = `
+            <div class="${colClass} mb-3 spec-field" data-spec-key="${spec.key}">
+                <label class="form-label fw-semibold">
+                    ${spec.label}${requiredLabel}
+                </label>`;
+        
+        switch(spec.type) {
+            case 'text':
+                fieldHtml += `
+                    <input type="text" 
+                           name="${fieldName}" 
+                           class="form-control"
+                           placeholder="${spec.placeholder || 'Masukkan ' + spec.label}"
+                           value="${oldValue}"
+                           ${requiredAttr}>`;
+                break;
+                
+            case 'number':
+                fieldHtml += `
+                    <input type="number" 
+                           name="${fieldName}" 
+                           class="form-control"
+                           placeholder="${spec.placeholder || '0'}"
+                           value="${oldValue}"
+                           step="any"
+                           ${requiredAttr}>`;
+                break;
+                
+            case 'textarea':
+                fieldHtml += `
+                    <textarea name="${fieldName}" 
+                              class="form-control"
+                              placeholder="${spec.placeholder || 'Masukkan ' + spec.label}"
+                              rows="3"
+                              ${requiredAttr}>${oldValue}</textarea>`;
+                break;
+                
+            case 'date':
+                fieldHtml += `
+                    <input type="date" 
+                           name="${fieldName}" 
+                           class="form-control"
+                           value="${oldValue}"
+                           ${requiredAttr}>`;
+                break;
+                
+            case 'boolean':
+                fieldHtml += `
+                    <div class="form-check form-switch mt-3">
+                        <input type="hidden" name="${fieldName}" value="0">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               name="${fieldName}" 
+                               value="1"
+                               id="spec_${spec.key}"
+                               ${oldValue == '1' ? 'checked' : ''}>
+                        <label class="form-check-label" for="spec_${spec.key}">Ya</label>
+                    </div>`;
+                break;
+                
+            case 'select':
+                fieldHtml += `
+                    <select name="${fieldName}" 
+                            class="form-select"
+                            ${requiredAttr}>
+                        <option value="">-- Pilih ${spec.label} --</option>`;
+                
+                if (spec.options && Array.isArray(spec.options)) {
+                    spec.options.forEach(function(option) {
+                        const selected = (oldValue == option.value) ? 'selected' : '';
+                        fieldHtml += `
+                            <option value="${option.value}" ${selected}>${option.label}</option>`;
+                    });
+                }
+                
+                fieldHtml += `</select>`;
+                break;
+                
+            default:
+                fieldHtml += `
+                    <input type="text" 
+                           name="${fieldName}" 
+                           class="form-control"
+                           placeholder="${spec.placeholder || ''}"
+                           value="${oldValue}"
+                           ${requiredAttr}>`;
+        }
+        
+        if (spec.help_text) {
+            fieldHtml += `
+                <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle"></i> ${spec.help_text}
+                </small>`;
+        }
+        
+        fieldHtml += `</div>`;
+        
+        return fieldHtml;
+    }
+    
+    // ============================================
+    // EVENT HANDLER
+    // ============================================
+    
+    // Event: Kategori berubah
+    $('#category_id').on('change', function() {
+        const selectedOption = $(this).find(':selected');
+        const categoryId = $(this).val();
+        const categoryName = selectedOption.text().split(' (')[0]; // Ambil nama saja
+        const usefulLife = selectedOption.data('life');
+        
+        // Update useful life months
         if (usefulLife && $('#useful_life_months').val() === '') {
             $('#useful_life_months').val(usefulLife);
         }
+        
+        // Load spesifikasi
+        loadSpecifications(categoryId, categoryName);
     });
+    
+    // Auto-fill useful life months when category changes
+    // (existing functionality - kept)
     
     // Auto-calculate residual value (10% of purchase price)
     $('#purchase_price').on('input', function() {
@@ -338,7 +567,6 @@ $(document).ready(function() {
     // Format purchase price as currency (for display only)
     $('#purchase_price').on('blur', function() {
         let value = parseFloat($(this).val()) || 0;
-        // Keep raw value for form submission, just for visual feedback
         if (value > 0) {
             $(this).css('background-color', '#e8f5e9');
         } else {
@@ -346,15 +574,29 @@ $(document).ready(function() {
         }
     });
     
-    // Trigger auto-fill if category is pre-selected
+    // ============================================
+    // INITIAL LOAD (jika kategori sudah dipilih)
+    // ============================================
     if ($('#category_id').val()) {
-        $('#category_id').trigger('change');
+        const selectedOption = $('#category_id').find(':selected');
+        const categoryId = $('#category_id').val();
+        const categoryName = selectedOption.text().split(' (')[0];
+        
+        // Load spesifikasi
+        loadSpecifications(categoryId, categoryName);
+        
+        // Trigger useful life
+        const usefulLife = selectedOption.data('life');
+        if (usefulLife && $('#useful_life_months').val() === '') {
+            $('#useful_life_months').val(usefulLife);
+        }
     }
     
     // Trigger residual calculation if purchase price is pre-filled
     if ($('#purchase_price').val()) {
         $('#purchase_price').trigger('input');
     }
+    
 });
 </script>
 @endpush
