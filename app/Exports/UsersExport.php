@@ -26,8 +26,8 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     public function __construct()
     {
         $this->exportDate = now();
-        $this->companyName = \App\Helpers\SettingHelper::getCompanyName();
-        $this->systemName = \App\Helpers\SettingHelper::getSystemName();
+        $this->companyName = \App\Models\Setting::where('key', 'company_name')->value('value') ?? 'PT. NAMA PERUSAHAAN';
+        $this->systemName = \App\Models\Setting::where('key', 'system_name')->value('value') ?? 'Sistem Manajemen Aset';
     }
 
     public function collection()
@@ -90,6 +90,7 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 
                 // Header
                 $sheet->insertNewRowBefore(1, 4);
+                
                 $sheet->mergeCells('A1:I1');
                 $sheet->setCellValue('A1', $this->companyName);
                 $sheet->getStyle('A1')->applyFromArray([
@@ -111,8 +112,8 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 
-                // Header Table
-                $headerRow = 4;
+                // Header Table (Row 5)
+                $headerRow = 5;
                 $sheet->getStyle('A' . $headerRow . ':' . $lastColumn . $headerRow)->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
                     'fill' => [
@@ -121,6 +122,9 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                     ],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
+                
+                // Hitung ulang lastRow SETELAH insert header
+                $lastRow = $sheet->getHighestRow();
                 
                 // Borders
                 $sheet->getStyle('A' . $headerRow . ':' . $lastColumn . $lastRow)->applyFromArray([
@@ -133,8 +137,7 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 ]);
                 
                 // Alternating row colors
-                $dataStartRow = $headerRow + 1;
-                for ($i = $dataStartRow; $i <= $lastRow; $i++) {
+                for ($i = $headerRow + 1; $i <= $lastRow; $i++) {
                     if ($i % 2 == 0) {
                         $sheet->getStyle('A' . $i . ':' . $lastColumn . $i)->applyFromArray([
                             'fill' => [
@@ -145,7 +148,7 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                     }
                 }
                 
-                // Footer
+                // Footer - DINAMIS DI BAWAH DATA
                 $footerRow = $lastRow + 2;
                 $sheet->mergeCells('A' . $footerRow . ':' . $lastColumn . $footerRow);
                 $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s') . ' | ' . $this->systemName);
@@ -153,11 +156,6 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                     'font' => ['size' => 9, 'italic' => true, 'color' => ['rgb' => '6C757D']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
-                
-                // Auto-size columns
-                foreach (range('A', $lastColumn) as $col) {
-                    $sheet->getColumnDimension($col)->setAutoSize(true);
-                }
             },
         ];
     }

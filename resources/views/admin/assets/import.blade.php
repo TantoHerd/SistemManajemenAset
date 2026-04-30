@@ -16,136 +16,145 @@
 
 @section('content')
 <div class="row">
-    <div class="col-md-8 mx-auto">
-        <div class="card">
+    <div class="col-lg-8 mx-auto">
+        
+        <!-- STEP 1: Download Template -->
+        <div class="card mb-3">
             <div class="card-header bg-white">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-upload text-primary"></i> Import Data Aset
-                </h5>
-                <small class="text-muted">Upload file Excel/CSV untuk import data aset secara massal</small>
+                <h6 class="mb-0"><i class="bi bi-1-circle text-primary me-1"></i>Download Template</h6>
+            </div>
+            <div class="card-body text-center py-4">
+                <i class="bi bi-file-earmark-excel fs-1 text-success d-block mb-2"></i>
+                <h6>Template Import Aset</h6>
+                <p class="text-muted mb-3">
+                    Template berisi <strong>3 sheet</strong>: Data Aset (isi data), Petunjuk (panduan), Referensi (daftar kode)
+                </p>
+                <a href="{{ route('admin.assets.import.template') }}" class="btn btn-success btn-lg">
+                    <i class="bi bi-download me-1"></i> Download Template Excel
+                </a>
+            </div>
+        </div>
+        
+        <!-- STEP 2: Isi Template -->
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-2-circle text-primary me-1"></i>Isi Data di Template</h6>
             </div>
             <div class="card-body">
-                <!-- Info Box -->
-                <div class="alert alert-info">
-                    <div class="d-flex">
-                        <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                <div class="alert alert-info mb-0">
+                    <div class="d-flex gap-2">
+                        <i class="bi bi-info-circle-fill fs-4"></i>
                         <div>
-                            <strong>Panduan Import:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>Download template CSV terlebih dahulu</li>
-                                <li>Isi data sesuai dengan format yang tersedia</li>
-                                <li>Kolom wajib: <strong>nama_aset, kode_kategori, kode_lokasi, harga_beli, tanggal_beli</strong></li>
-                                <li>Kode kategori dan kode lokasi harus sudah ada di sistem</li>
-                                <li>Status yang tersedia: tersedia, dipakai, maintenance, rusak, dihapus</li>
-                                <li>Maksimal ukuran file: 5MB</li>
-                            </ul>
+                            <strong>Buka file Excel yang sudah didownload, lalu:</strong>
+                            <ol class="mb-0 mt-2 small">
+                                <li>Buka sheet <strong>"Data Aset"</strong></li>
+                                <li><strong>Hapus baris contoh (baris 2)</strong> yang berwarna kuning</li>
+                                <li>Isi data aset mulai dari baris 2</li>
+                                <li>Gunakan <strong>dropdown</strong> untuk kolom: Kategori, Lokasi, Status</li>
+                                <li>Lihat sheet <strong>"Petunjuk"</strong> untuk panduan lengkap</li>
+                                <li>Lihat sheet <strong>"Referensi"</strong> untuk daftar kode & spesifikasi</li>
+                            </ol>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Template Download -->
-                <div class="mb-4">
-                    <a href="{{ url('/assets/import/template') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-download"></i> Download Template Excel
-                    </a>
-                    <small class="text-muted d-block mt-1">
-                        Template berisi 2 sheet: "Data Aset" untuk mengisi data, dan "Panduan" untuk petunjuk pengisian
-                    </small>
-                </div>
-                
-                <hr>
-                
-                <!-- Form Upload - PAKAI URL LANGSUNG -->
-                <form action="{{ url('/assets/import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+            </div>
+        </div>
+        
+        <!-- STEP 3: Upload -->
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-3-circle text-primary me-1"></i>Upload File</h6>
+            </div>
+            <div class="card-body">
+                <form action="{{ route('admin.assets.import.store') }}" method="POST" enctype="multipart/form-data" id="importForm">
                     @csrf
                     
                     <div class="mb-3">
-                        <label for="file" class="form-label fw-semibold text-danger">
-                            File Excel/CSV <span class="text-danger">*</span>
+                        <label for="file" class="form-label fw-semibold">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i>Pilih File Excel
+                            <span class="text-danger">*</span>
                         </label>
                         <input type="file" name="file" id="file" 
                             class="form-control @error('file') is-invalid @enderror"
                             accept=".xlsx,.xls,.csv" required>
-                        <small class="text-muted">Format: .xlsx, .xls, .csv (Max 10MB)</small>
+                        <small class="text-muted">
+                            <i class="bi bi-check-circle text-success"></i> Format: .xlsx, .xls, .csv | Max: 10MB
+                        </small>
                         @error('file')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
                     
+                    <!-- Loading -->
                     <div id="loadingSpinner" style="display: none; text-align: center; margin: 20px 0;">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Sedang memproses data. Mohon tunggu...</p>
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 fw-semibold">Sedang memproses data. Mohon tunggu...</p>
+                        <small class="text-muted">Proses import mungkin memerlukan waktu beberapa saat</small>
                     </div>
                     
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <strong>Perhatian:</strong> Import akan menambahkan data baru. Pastikan data sudah benar sebelum upload.
-                    </div>
-                    
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex gap-2">
                         <a href="{{ route('admin.assets.index') }}" class="btn btn-secondary">
                             <i class="bi bi-x-circle"></i> Batal
                         </a>
                         <button type="submit" class="btn btn-primary px-4" id="submitBtn">
-                            <i class="bi bi-upload"></i> Import Data
+                            <i class="bi bi-upload me-1"></i> Import Data
                         </button>
                     </div>
                 </form>
                 
                 <!-- Error Display -->
                 @if(session('import_errors'))
-                    <div class="alert alert-danger mt-4">
-                        <h6><i class="bi bi-exclamation-circle"></i> Detail Error:</h6>
-                        <ul class="mb-0">
-                            @foreach(session('import_errors') as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
+                <div class="alert alert-danger mt-3 mb-0">
+                    <h6><i class="bi bi-exclamation-circle me-1"></i>Detail Error ({{ count(session('import_errors')) }}):</h6>
+                    <ul class="mb-0 small">
+                        @foreach(session('import_errors') as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
                 @endif
             </div>
         </div>
         
-        <!-- Format Kolom -->
-        <div class="card mt-4">
-            <div class="card-header bg-white">
-                <h6 class="mb-0">
-                    <i class="bi bi-table"></i> Format Kolom Template
-                </h6>
+        <!-- INFO TAMBAHAN -->
+        <div class="row g-3">
+            <!-- Kolom Wajib -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0 small fw-bold"><i class="bi bi-check-circle text-success me-1"></i>Kolom Wajib</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0 small">
+                            <tr><td class="fw-semibold">nama_aset</td><td>Nama lengkap aset</td></tr>
+                            <tr><td class="fw-semibold">kode_kategori</td><td>Kode kategori (dropdown)</td></tr>
+                            <tr><td class="fw-semibold">kode_lokasi</td><td>Kode lokasi (dropdown)</td></tr>
+                            <tr><td class="fw-semibold">tanggal_beli</td><td>YYYY-MM-DD</td></tr>
+                            <tr><td class="fw-semibold">harga_beli</td><td>Angka (contoh: 25000000)</td></tr>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Kolom</th>
-                                <th>Deskripsi</th>
-                                <th>Wajib</th>
-                                <th>Contoh</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>kode_aset</td><td>Kode unik aset</td><td>Tidak</td><td>AST-001</td></tr>
-                            <tr><td>nama_aset</td><td>Nama aset</td><td>Ya</td><td>Dell XPS 15</td></tr>
-                            <tr><td>serial_number</td><td>Nomor seri</td><td>Tidak</td><td>SN123456</td></tr>
-                            <tr><td>model</td><td>Model aset</td><td>Tidak</td><td>XPS 15 9520</td></tr>
-                            <tr><td>brand</td><td>Merek aset</td><td>Tidak</td><td>Dell</td></tr>
-                            <tr><td>kode_kategori</td><td>Kode kategori</td><td>Ya</td><td>LAP</td></tr>
-                            <tr><td>kode_lokasi</td><td>Kode lokasi</td><td>Ya</td><td>IT-RM</td></tr>
-                            <tr><td>status</td><td>Status aset</td><td>Tidak</td><td>tersedia</td></tr>
-                            <tr><td>tanggal_beli</td><td>Tanggal pembelian</td><td>Ya</td><td>2024-01-15</td></tr>
-                            <tr><td>harga_beli</td><td>Harga beli</td><td>Ya</td><td>25000000</td></tr>
-                            <tr><td>nilai_residu</td><td>Nilai residu</td><td>Tidak</td><td>2500000</td></tr>
-                            <tr><td>masa_manfaat</td><td>Masa manfaat (bulan)</td><td>Tidak</td><td>48</td></tr>
-                            <tr><td>garansi_berakhir</td><td>Garansi berakhir</td><td>Tidak</td><td>2026-01-15</td></tr>
-                            <tr><td>catatan</td><td>Catatan tambahan</td><td>Tidak</td><td>Laptop untuk tim IT</td></tr>
-                        </tbody>
-                    </table>
+            
+            <!-- Tips -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0 small fw-bold"><i class="bi bi-lightbulb text-warning me-1"></i>Tips</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="small mb-0">
+                            <li class="mb-1">Gunakan <strong>dropdown</strong> untuk menghindari typo</li>
+                            <li class="mb-1">Kode <strong>kategori & lokasi</strong> harus terdaftar di sistem</li>
+                            <li class="mb-1">Lihat sheet <strong>"Referensi"</strong> untuk daftar kode</li>
+                            <li class="mb-1">Kolom spesifikasi <strong>otomatis menyesuaikan</strong></li>
+                            <li>Jangan ubah nama kolom header</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
+        
     </div>
 </div>
 @endsection

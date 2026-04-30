@@ -11,6 +11,7 @@ class ImportTemplateExport implements WithMultipleSheets
         return [
             new TemplateDataSheet(),
             new TemplateGuideSheet(),
+            new TemplateReferenceSheet(), // BARU
         ];
     }
 }

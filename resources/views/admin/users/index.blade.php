@@ -9,7 +9,7 @@
 
 @section('header-actions')
     <div class="d-flex gap-2">
-        <a href="{{ url('/users/import') }}" class="btn btn-warning">
+        <a href="{{ route('admin.users.import') }}" class="btn btn-warning">
             <i class="bi bi-upload"></i> Import
         </a>
         <a href="{{ route('admin.users.export') }}" class="btn btn-info">

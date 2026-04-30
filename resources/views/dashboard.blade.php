@@ -8,149 +8,76 @@
 @endsection
 
 @section('content')
-<!-- Statistik Cards -->
-<div class="row">
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-primary shadow h-100 py-2">
+<!-- ============================================ -->
+<!-- STATISTIK UTAMA -->
+<!-- ============================================ -->
+<div class="row g-3 mb-3">
+    <!-- Total Aset -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-primary border-4 shadow-sm h-100">
             <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            <i class="bi bi-hdd-stack"></i> Total Aset
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalAssets) }}</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total Aset</div>
+                        <div class="h3 mb-0 fw-bold">{{ number_format($totalAssets) }}</div>
+                        <small class="text-muted">{{ $totalCategories }} kategori</small>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-hdd-stack fa-2x text-gray-300"></i>
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-hdd-stack fs-3 text-primary"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-success shadow h-100 py-2">
+    <!-- Aset Tersedia -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-success border-4 shadow-sm h-100">
             <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            <i class="bi bi-check-circle"></i> Aset Tersedia
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($assetsAvailable) }}</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Tersedia</div>
+                        <div class="h3 mb-0 fw-bold">{{ number_format($assetsAvailable) }}</div>
+                        <small class="text-success">{{ $availablePercentage }}% dari total</small>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-check-circle fa-2x text-gray-300"></i>
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-check-circle fs-3 text-success"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-warning shadow h-100 py-2">
+    <!-- Aset Digunakan -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-primary border-4 shadow-sm h-100">
             <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                            <i class="bi bi-person-check"></i> Dalam Pemakaian
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($assetsInUse) }}</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Digunakan</div>
+                        <div class="h3 mb-0 fw-bold">{{ number_format($assetsInUse) }}</div>
+                        <small class="text-primary">{{ $usagePercentage }}% dari total</small>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-person-check fa-2x text-gray-300"></i>
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-person-check fs-3 text-primary"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-danger shadow h-100 py-2">
+    <!-- Maintenance -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-start border-warning border-4 shadow-sm h-100">
             <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                            <i class="bi bi-wrench"></i> Maintenance
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($assetsMaintenance) }}</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Maintenance</div>
+                        <div class="h3 mb-0 fw-bold">{{ number_format($assetsMaintenance) }}</div>
+                        <small class="text-warning">{{ $pendingMaintenances }} pending</small>
                     </div>
-                    <div class="col-auto">
-                        <i class="bi bi-wrench fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Financial Stats -->
-<div class="row">
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-primary text-white shadow">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
-                            Total Nilai Aset
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold">Rp {{ number_format($totalValue, 0, ',', '.') }}</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="bi bi-currency-dollar fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-info text-white shadow">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
-                            Nilai Pembelian
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold">Rp {{ number_format($totalPurchaseValue, 0, ',', '.') }}</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="bi bi-cart-plus fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-warning text-white shadow">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
-                            Total Penyusutan
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold">Rp {{ number_format($totalDepreciation, 0, ',', '.') }}</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="bi bi-graph-down fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card bg-success text-white shadow">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
-                            Maintenance Selesai
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold">{{ number_format($completedMaintenances) }}</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="bi bi-check-all fa-2x"></i>
+                    <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-wrench fs-3 text-warning"></i>
                     </div>
                 </div>
             </div>
@@ -158,157 +85,212 @@
     </div>
 </div>
 
-<div class="row">
-    <!-- Grafik Aset per Kategori -->
-    <div class="col-xl-6 col-lg-6 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header bg-white">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-pie-chart"></i> Aset per Kategori
-                </h6>
-            </div>
-            <div class="card-body">
-                <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+<!-- ============================================ -->
+<!-- FINANCIAL SUMMARY -->
+<!-- ============================================ -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3 col-6">
+        <div class="card bg-primary text-white shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Nilai Aset Saat Ini</div>
+                <div class="h5 mb-0 fw-bold mt-1">Rp {{ number_format($totalValue, 0, ',', '.') }}</div>
             </div>
         </div>
     </div>
-    
-    <!-- Grafik Aset per Status -->
-    <div class="col-xl-6 col-lg-6 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header bg-white">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-bar-chart"></i> Status Aset
-                </h6>
-            </div>
-            <div class="card-body">
-                <canvas id="statusChart" style="max-height: 300px;"></canvas>
+    <div class="col-md-3 col-6">
+        <div class="card bg-info text-white shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Nilai Pembelian</div>
+                <div class="h5 mb-0 fw-bold mt-1">Rp {{ number_format($totalPurchaseValue, 0, ',', '.') }}</div>
             </div>
         </div>
     </div>
-</div>
-
-<div class="row">
-    <!-- Grafik Aset per Lokasi -->
-    <div class="col-xl-6 col-lg-6 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header bg-white">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-geo-alt"></i> Aset per Lokasi (Top 5)
-                </h6>
-            </div>
-            <div class="card-body">
-                <canvas id="locationChart" style="max-height: 300px;"></canvas>
+    <div class="col-md-3 col-6">
+        <div class="card bg-warning text-white shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Total Penyusutan</div>
+                <div class="h5 mb-0 fw-bold mt-1">Rp {{ number_format($totalDepreciation, 0, ',', '.') }}</div>
             </div>
         </div>
     </div>
-    
-    <!-- Grafik Maintenance per Bulan -->
-    <div class="col-xl-6 col-lg-6 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header bg-white">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-calendar"></i> Maintenance per Bulan
-                </h6>
-            </div>
-            <div class="card-body">
-                <canvas id="maintenanceChart" style="max-height: 300px;"></canvas>
+    <div class="col-md-3 col-6">
+        <div class="card bg-danger text-white shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Biaya Maintenance</div>
+                <div class="h5 mb-0 fw-bold mt-1">Rp {{ number_format($totalMaintenanceCost, 0, ',', '.') }}</div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
+<!-- ============================================ -->
+<!-- CHARTS ROW 1 -->
+<!-- ============================================ -->
+<div class="row g-3 mb-3">
+    <!-- Pie Chart: Aset per Kategori -->
+    <div class="col-xl-4 col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-pie-chart text-primary me-1"></i>Aset per Kategori</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Doughnut Chart: Aset per Status -->
+    <div class="col-xl-4 col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-bar-chart text-primary me-1"></i>Status Aset</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Horizontal Bar: Aset per Lokasi -->
+    <div class="col-xl-4 col-lg-12">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-geo-alt text-primary me-1"></i>Top Lokasi</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="locationChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- CHARTS ROW 2 -->
+<!-- ============================================ -->
+<div class="row g-3 mb-3">
+    <!-- Line Chart: Maintenance per Bulan -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-graph-up text-primary me-1"></i>Tren Maintenance 6 Bulan</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="maintenanceChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bar Chart: Nilai Aset per Kategori -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-currency-dollar text-primary me-1"></i>Nilai per Kategori</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="valueChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TABLES ROW -->
+<!-- ============================================ -->
+<div class="row g-3">
     <!-- Aset Terbaru -->
-    <div class="col-xl-6 mb-4">
-        <div class="card shadow">
-            <div class="card-header bg-white">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-clock-history"></i> Aset Terbaru
-                </h6>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-primary me-1"></i>Aset Terbaru</h6>
+                <a href="{{ route('admin.assets.index') }}" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Kode</th>
-                                <th>Nama Aset</th>
-                                <th>Kategori</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($recentAssets as $asset)
-                            <tr>
-                                <td><code>{{ $asset->asset_code }}</code></td>
-                                <td>{{ $asset->name }}</td>
-                                <td>{{ $asset->category->name ?? '-' }}</td>
-                                <td>
-                                    @php
-                                        $badgeClass = [
-                                            'available' => 'success',
-                                            'in_use' => 'primary',
-                                            'maintenance' => 'warning',
-                                            'damaged' => 'danger',
-                                        ][$asset->status] ?? 'secondary';
-                                    @endphp
-                                    <span class="badge bg-{{ $badgeClass }}-subtle text-{{ $badgeClass }}">
-                                        {{ $asset->status_label }}
-                                    </span>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="4" class="text-center py-3 text-muted">
-                                    Belum ada data aset
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div class="list-group list-group-flush">
+                    @forelse($recentAssets as $asset)
+                    <a href="{{ route('admin.assets.show', $asset) }}" class="list-group-item list-group-item-action px-3 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold small">{{ $asset->name }}</div>
+                                <small class="text-muted">{{ $asset->asset_code }}</small>
+                            </div>
+                            <span class="badge bg-label-{{ $asset->status == 'available' ? 'success' : ($asset->status == 'in_use' ? 'primary' : 'warning') }} rounded-pill">
+                                {{ $asset->status_label }}
+                            </span>
+                        </div>
+                    </a>
+                    @empty
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        Belum ada aset
+                    </div>
+                    @endforelse
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Maintenance Mendatang -->
-    <div class="col-xl-6 mb-4">
-        <div class="card shadow">
-            <div class="card-header bg-white">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-calendar-check"></i> Maintenance Mendatang
-                </h6>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-calendar-check text-primary me-1"></i>Maintenance Mendatang</h6>
+                <a href="{{ route('admin.maintenances.schedule') }}" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Aset</th>
-                                <th>Tipe</th>
-                                <th>Tanggal</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($upcomingMaintenances as $maintenance)
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <div>
-                                    <strong>{{ $maintenance->asset->name }}</strong>
-                                    <br>
-                                    <small class="text-muted">{{ $maintenance->maintenance_date ? $maintenance->maintenance_date->format('d M Y') : '-' }}</small>
-                                </div>
-                                <span class="badge bg-label-warning">
-                                    @php
-                                        $diff = now()->diffInDays($maintenance->maintenance_date);
-                                    @endphp
-                                    {{ $diff }} hari lagi
-                                </span>
+                <div class="list-group list-group-flush">
+                    @forelse($upcomingMaintenances as $maintenance)
+                    <div class="list-group-item px-3 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold small">{{ $maintenance->title ?? 'Tanpa Judul' }}</div>
+                                <small class="text-muted">
+                                    {{ $maintenance->asset->name ?? '-' }} • 
+                                    {{ $maintenance->maintenance_date->format('d M Y') }}
+                                </small>
                             </div>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            <span class="badge bg-label-{{ $maintenance->days_until <= 7 ? 'danger' : 'warning' }} rounded-pill">
+                                {{ $maintenance->days_until }} hari lagi
+                            </span>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+                        Tidak ada maintenance mendatang
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Garansi Hampir Habis -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-shield-exclamation text-primary me-1"></i>Garansi Hampir Habis</h6>
+                <a href="{{ route('admin.assets.index') }}" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    @forelse($expiringWarranty as $asset)
+                    <a href="{{ route('admin.assets.show', $asset) }}" class="list-group-item list-group-item-action px-3 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold small">{{ $asset->name }}</div>
+                                <small class="text-muted">s/d {{ $asset->warranty_expiry->format('d M Y') }}</small>
+                            </div>
+                            <span class="badge bg-label-{{ $asset->days_until_warranty <= 30 ? 'danger' : 'warning' }} rounded-pill">
+                                {{ $asset->days_until_warranty }} hari
+                            </span>
+                        </div>
+                    </a>
+                    @empty
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-shield-check fs-3 d-block mb-2"></i>
+                        Semua garansi aman
+                    </div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -320,141 +302,188 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Chart Aset per Kategori
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    
+    // Warna palette
+    const palette = [
+        '#4361ee', '#3f37c9', '#4895ef', '#4cc9f0', '#2ec4b6',
+        '#06d6a0', '#118ab2', '#073b4c', '#ef476f', '#ffd166'
+    ];
+    
+    // ============================================
+    // CHART 1: Aset per Kategori (PIE)
+    // ============================================
     const categoryData = @json($categoryStats);
-    new Chart(categoryCtx, {
-        type: 'pie',
-        data: {
-            labels: categoryData.map(item => item.name),
-            datasets: [{
-                data: categoryData.map(item => item.total),
-                backgroundColor: [
-                    '#4361ee', '#3b2a9f', '#28a745', '#ffc107', 
-                    '#dc3545', '#17a2b8', '#6f42c1', '#fd7e14'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
+    if (categoryData.length > 0 && document.getElementById('categoryChart')) {
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'pie',
+            data: {
+                labels: categoryData.map(i => i.name),
+                datasets: [{
+                    data: categoryData.map(i => i.total),
+                    backgroundColor: palette.slice(0, categoryData.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 20, usePointStyle: true, font: { size: 11 } }
+                    }
                 }
             }
-        }
-    });
+        });
+    }
     
-    // Chart Aset per Status
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    // ============================================
+    // CHART 2: Status Aset (DOUGHNUT)
+    // ============================================
     const statusData = @json($statusStats);
-    new Chart(statusCtx, {
-        type: 'bar',
-        data: {
-            labels: statusData.map(item => item.name),
-            datasets: [{
-                label: 'Jumlah Aset',
-                data: statusData.map(item => item.total),
-                backgroundColor: statusData.map(item => item.color),
-                borderRadius: 8,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
+    if (document.getElementById('statusChart')) {
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(i => i.name),
+                datasets: [{
+                    data: statusData.map(i => i.total),
+                    backgroundColor: statusData.map(i => i.color),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 20, usePointStyle: true, font: { size: 11 } }
                     }
                 }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
             }
-        }
-    });
+        });
+    }
     
-    // Chart Aset per Lokasi
-    const locationCtx = document.getElementById('locationChart').getContext('2d');
+    // ============================================
+    // CHART 3: Top Lokasi (HORIZONTAL BAR)
+    // ============================================
     const locationData = @json($locationStats);
-    new Chart(locationCtx, {
-        type: 'bar',
-        data: {
-            labels: locationData.map(item => item.name),
-            datasets: [{
-                label: 'Jumlah Aset',
-                data: locationData.map(item => item.total),
-                backgroundColor: '#4361ee',
-                borderRadius: 8,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            indexAxis: 'y',
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
+    if (locationData.length > 0 && document.getElementById('locationChart')) {
+        new Chart(document.getElementById('locationChart'), {
+            type: 'bar',
+            data: {
+                labels: locationData.map(i => i.name),
+                datasets: [{
+                    label: 'Jumlah Aset',
+                    data: locationData.map(i => i.total),
+                    backgroundColor: palette,
+                    borderRadius: 6,
+                    borderWidth: 0
+                }]
             },
-            plugins: {
-                legend: {
-                    display: false
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: { beginAtZero: true, ticks: { stepSize: 1 } }
+                },
+                plugins: {
+                    legend: { display: false }
                 }
             }
-        }
-    });
+        });
+    }
     
-    // Chart Maintenance per Bulan
-    const maintenanceCtx = document.getElementById('maintenanceChart').getContext('2d');
+    // ============================================
+    // CHART 4: Maintenance per Bulan (LINE)
+    // ============================================
     const maintenanceData = @json($maintenanceStats);
-    new Chart(maintenanceCtx, {
-        type: 'line',
-        data: {
-            labels: maintenanceData.map(item => item.month),
-            datasets: [{
-                label: 'Jumlah Maintenance',
-                data: maintenanceData.map(item => item.total),
-                backgroundColor: 'rgba(67, 97, 238, 0.1)',
-                borderColor: '#4361ee',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointBackgroundColor: '#4361ee',
-                pointBorderColor: '#fff',
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
+    if (document.getElementById('maintenanceChart')) {
+        new Chart(document.getElementById('maintenanceChart'), {
+            type: 'line',
+            data: {
+                labels: maintenanceData.map(i => i.month),
+                datasets: [{
+                    label: 'Jumlah Maintenance',
+                    data: maintenanceData.map(i => i.total),
+                    borderColor: '#4361ee',
+                    backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#4361ee',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 8
+                }]
             },
-            plugins: {
-                legend: {
-                    position: 'top'
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                },
+                plugins: {
+                    legend: { position: 'top' }
                 }
             }
-        }
-    });
+        });
+    }
+    
+    // ============================================
+    // CHART 5: Nilai Aset per Kategori (BAR)
+    // ============================================
+    const valueData = @json($valueByCategory);
+    if (valueData.length > 0 && document.getElementById('valueChart')) {
+        new Chart(document.getElementById('valueChart'), {
+            type: 'bar',
+            data: {
+                labels: valueData.map(i => i.name),
+                datasets: [{
+                    label: 'Nilai (Rp)',
+                    data: valueData.map(i => i.value),
+                    backgroundColor: palette.slice(0, valueData.length),
+                    borderRadius: 6,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { 
+                            callback: function(v) {
+                                return 'Rp ' + (v / 1000000).toFixed(0) + 'jt';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+    
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+.border-start { border-left-width: 4px !important; }
+.card { transition: transform 0.2s; }
+.card:hover { transform: translateY(-2px); }
+.bg-label-success { background-color: rgba(40,167,69,.1); color: #28a745; }
+.bg-label-primary { background-color: rgba(67,97,238,.1); color: #4361ee; }
+.bg-label-warning { background-color: rgba(255,193,7,.1); color: #ffc107; }
+.bg-label-danger { background-color: rgba(220,53,69,.1); color: #dc3545; }
+</style>
 @endpush

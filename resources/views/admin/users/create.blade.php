@@ -88,19 +88,36 @@
                             @enderror
                         </div>
                         
+                        {{-- Ganti select role jadi ini --}}
                         <div class="col-md-6 mb-3">
-                            <label for="role" class="form-label fw-semibold text-danger">
+                            <label for="roles" class="form-label fw-semibold text-danger">
                                 Role <span class="text-danger">*</span>
                             </label>
-                            <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
-                                <option value="">-- Pilih Role --</option>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->name }}" {{ old('role') == $role->name ? 'selected' : '' }}>
-                                        {{ ucfirst($role->name) }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('role')
+                            <div class="card bg-light border">
+                                <div class="card-body p-2" style="max-height: 200px; overflow-y: auto;">
+                                    @foreach($roles as $role)
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                            name="roles[]" 
+                                            value="{{ $role->name }}" 
+                                            id="role_{{ $role->id }}"
+                                            {{ in_array($role->name, old('roles', [])) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="role_{{ $role->id }}">
+                                            <strong>{{ ucfirst(str_replace('_', ' ', $role->name)) }}</strong>
+                                            @if($role->name === 'super_admin')
+                                                <span class="badge bg-danger ms-1">Full Access</span>
+                                            @elseif($role->name === 'admin')
+                                                <span class="badge bg-warning ms-1">Administrator</span>
+                                            @elseif($role->name === 'technician')
+                                                <span class="badge bg-info ms-1">Teknisi</span>
+                                            @endif
+                                        </label>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <small class="text-muted">Bisa pilih lebih dari satu role</small>
+                            @error('roles')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
                         </div>

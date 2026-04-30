@@ -49,7 +49,7 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        $roles = \Spatie\Permission\Models\Role::all();
         return view('admin.users.create', compact('roles'));
     }
 
@@ -58,36 +58,29 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'role' => 'required|exists:roles,name',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:8|confirmed',
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,name',
             'status' => 'required|in:active,inactive',
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                             ->withErrors($validator)
-                             ->withInput();
-        }
-
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'status' => $request->status,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'is_active' => $validated['status'] === 'active',
         ]);
 
-        $user->assignRole($request->role);
+        // Assign roles
+        $user->syncRoles($request->roles);
 
         return redirect()->route('admin.users.index')
-                         ->with('success', 'User berhasil ditambahkan');
+            ->with('success', 'User berhasil ditambahkan');
     }
+
 
     /**
      * Display the specified user.
@@ -103,10 +96,9 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $roles = Role::all();
-        $userRole = $user->roles->first()->name ?? '';
-        
-        return view('admin.users.edit', compact('user', 'roles', 'userRole'));
+        $roles = \Spatie\Permission\Models\Role::all();
+        $userRoles = $user->roles->pluck('name')->toArray();
+        return view('admin.users.edit', compact('user', 'roles', 'userRoles'));
     }
 
     /**
@@ -114,34 +106,30 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'role' => 'required|exists:roles,name',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,name',
             'status' => 'required|in:active,inactive',
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                             ->withErrors($validator)
-                             ->withInput();
-        }
-
         $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'status' => $request->status,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'is_active' => $validated['status'] === 'active',
         ]);
 
-        // Sync role
-        $user->syncRoles([$request->role]);
+        // Update password if provided
+        if ($request->filled('password')) {
+            $user->update(['password' => bcrypt($request->password)]);
+        }
+
+        // Sync roles
+        $user->syncRoles($request->roles);
 
         return redirect()->route('admin.users.index')
-                         ->with('success', 'User berhasil diperbarui');
+            ->with('success', 'User berhasil diupdate');
     }
 
     /**
@@ -209,12 +197,7 @@ class UserController extends Controller
      */
     public function export()
     {
-        try {
-            $fileName = 'users_' . date('Y-m-d_His') . '.xlsx';
-            return Excel::download(new UsersExport(), $fileName);
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal export: ' . $e->getMessage());
-        }
+        return Excel::download(new UsersExport, 'users_' . date('Y-m-d_His') . '.xlsx');
     }
 
     /**
@@ -230,7 +213,7 @@ class UserController extends Controller
      */
     public function downloadTemplate()
     {
-        return Excel::download(new UserTemplateExport(), 'template_import_user.xlsx');
+        return Excel::download(new UserTemplateExport, 'template_import_user_' . date('Y-m-d') . '.xlsx');
     }
 
     /**
@@ -239,23 +222,16 @@ class UserController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ]);
 
-        $import = new UsersImport();
-        Excel::import($import, $request->file('file'));
-
-        $rowCount = $import->getRowCount();
-        $successCount = $import->getSuccessCount();
-        $failures = $import->getFailures();
-
-        $message = "Import selesai. Total data: {$rowCount}, Berhasil: {$successCount}, Gagal: " . count($failures);
-
-        if (count($failures) > 0) {
-            session()->flash('import_errors', $failures);
-            return redirect()->back()->with('warning', $message);
+        try {
+            Excel::import(new UsersImport, $request->file('file'));
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Import user berhasil');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal import: ' . $e->getMessage());
         }
-
-        return redirect()->route('admin.users.index')->with('success', $message);
     }
 }

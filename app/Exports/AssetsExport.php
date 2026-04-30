@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Asset;
-use App\Helpers\SettingHelper;
+use App\Models\Setting;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -35,35 +35,42 @@ class AssetsExport implements
     protected $exportDate;
     protected $companyName;
     protected $systemName;
+    
+    // Koleksi spesifikasi dari semua kategori
+    protected $allSpecKeys = [];
 
     public function __construct($filters = [])
     {
         $this->filters = $filters;
         $this->exportDate = now();
         
-        // Ambil langsung dari database
         try {
-            $company = \App\Models\Setting::where('key', 'company_name')->first();
+            $company = Setting::where('key', 'company_name')->first();
             $this->companyName = $company ? $company->value : 'PT. NAMA PERUSAHAAN';
             
-            $system = \App\Models\Setting::where('key', 'system_name')->first();
+            $system = Setting::where('key', 'system_name')->first();
             $this->systemName = $system ? $system->value : 'Sistem Manajemen Aset IT';
         } catch (\Exception $e) {
             $this->companyName = 'PT. NAMA PERUSAHAAN';
             $this->systemName = 'Sistem Manajemen Aset IT';
         }
+        
+        // Kumpulkan semua spec key dari semua kategori
+        $this->allSpecKeys = \App\Models\CategorySpecification::where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('label', 'key')
+            ->toArray();
     }
 
     public function collection()
     {
-        $query = Asset::with(['category', 'location', 'assignedTo']);
+        $query = Asset::with(['category', 'location', 'assignedTo', 'specifications']);
 
         if (!empty($this->filters['category'])) {
             $query->where('category_id', $this->filters['category']);
         }
 
         if (!empty($this->filters['location'])) {
-            // Filter lokasi induk dengan semua sub-lokasi
             $locationIds = $this->getLocationIds($this->filters['location']);
             $query->whereIn('location_id', $locationIds);
         }
@@ -93,11 +100,9 @@ class AssetsExport implements
     {
         $ids = [$parentId];
         $children = \App\Models\Location::where('parent_id', $parentId)->get();
-        
         foreach ($children as $child) {
             $ids = array_merge($ids, $this->getLocationIds($child->id));
         }
-        
         return $ids;
     }
 
@@ -107,9 +112,9 @@ class AssetsExport implements
             'creator'        => $this->systemName,
             'lastModifiedBy' => $this->systemName,
             'title'          => 'Laporan Data Aset',
-            'description'    => 'Laporan lengkap data aset IT perusahaan',
+            'description'    => 'Laporan lengkap data aset IT perusahaan termasuk spesifikasi',
             'subject'        => 'Data Aset',
-            'keywords'       => 'aset, inventory, it asset, management',
+            'keywords'       => 'aset, inventory, it asset, management, spesifikasi',
             'category'       => 'Laporan',
             'manager'        => 'IT Department',
             'company'        => $this->companyName,
@@ -123,7 +128,7 @@ class AssetsExport implements
 
     public function headings(): array
     {
-        return [
+        $baseHeadings = [
             'NO',
             'KODE ASET',
             'NAMA ASET',
@@ -143,8 +148,15 @@ class AssetsExport implements
             'PENYUSUTAN',
             'GARANSI',
             'CATATAN',
-            'UPDATE TERAKHIR'
+            'UPDATE TERAKHIR',
         ];
+        
+        // Tambahkan heading spesifikasi
+        foreach ($this->allSpecKeys as $key => $label) {
+            $baseHeadings[] = strtoupper($label);
+        }
+        
+        return $baseHeadings;
     }
 
     public function map($asset): array
@@ -152,7 +164,7 @@ class AssetsExport implements
         static $rowNumber = 0;
         $rowNumber++;
 
-        return [
+        $baseData = [
             $rowNumber,
             $asset->asset_code,
             $asset->name,
@@ -174,6 +186,16 @@ class AssetsExport implements
             $asset->notes ?? '-',
             $asset->updated_at->format('d/m/Y H:i'),
         ];
+        
+        // Ambil spesifikasi aset
+        $assetSpecs = $asset->specifications->pluck('spec_value', 'spec_key');
+        
+        // Tambahkan nilai spesifikasi sesuai urutan
+        foreach ($this->allSpecKeys as $key => $label) {
+            $baseData[] = $assetSpecs[$key] ?? '-';
+        }
+        
+        return $baseData;
     }
 
     public function styles(Worksheet $sheet)
@@ -188,21 +210,26 @@ class AssetsExport implements
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet;
-                $lastColumn = 'T';
+                
+                // Hitung jumlah kolom (base + spesifikasi)
+                $baseColumns = 20; // A-T
+                $specCount = count($this->allSpecKeys);
+                $totalColumns = $baseColumns + $specCount;
+                $lastColumn = $this->getColumnLetter($totalColumns);
                 
                 // HEADER (4 baris pertama)
                 $sheet->insertNewRowBefore(1, 4);
                 
-                // Baris 1: Nama Perusahaan (dari konfigurasi)
-                $sheet->mergeCells('A1:T1');
+                // Baris 1: Nama Perusahaan
+                $sheet->mergeCells('A1:' . $lastColumn . '1');
                 $sheet->setCellValue('A1', $this->companyName);
                 $sheet->getStyle('A1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1E3A5F']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 
-                // Baris 2: Judul Laporan
-                $sheet->mergeCells('A2:T2');
+                // Baris 2: Judul
+                $sheet->mergeCells('A2:' . $lastColumn . '2');
                 $sheet->setCellValue('A2', 'LAPORAN DATA ASET IT');
                 $sheet->getStyle('A2')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 14],
@@ -210,14 +237,14 @@ class AssetsExport implements
                 ]);
                 
                 // Baris 3: Periode
-                $sheet->mergeCells('A3:T3');
+                $sheet->mergeCells('A3:' . $lastColumn . '3');
                 $sheet->setCellValue('A3', 'Periode: ' . $this->exportDate->format('d F Y'));
                 $sheet->getStyle('A3')->applyFromArray([
                     'font' => ['size' => 10, 'italic' => true],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 
-                // Baris 4: Ringkasan Data
+                // Baris 4: Ringkasan
                 $sheet->mergeCells('A4:B4');
                 $sheet->setCellValue('A4', 'Total Aset:');
                 $sheet->setCellValue('C4', $this->totalAssets);
@@ -238,7 +265,7 @@ class AssetsExport implements
                 // HEADER TABLE (baris 5)
                 $headerRow = 5;
                 $sheet->getStyle('A' . $headerRow . ':' . $lastColumn . $headerRow)->applyFromArray([
-                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 10],
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 9],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
                         'startColor' => ['rgb' => '2E7D32']
@@ -248,14 +275,24 @@ class AssetsExport implements
                         'vertical' => Alignment::VERTICAL_CENTER
                     ],
                 ]);
-                
                 $sheet->getRowDimension($headerRow)->setRowHeight(22);
+                
+                // Warnai header spesifikasi beda
+                if ($specCount > 0) {
+                    $specStartCol = $this->getColumnLetter($baseColumns + 1);
+                    $sheet->getStyle($specStartCol . $headerRow . ':' . $lastColumn . $headerRow)->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => '1565C0']
+                        ],
+                    ]);
+                }
                 
                 // DATA ROWS
                 $dataStartRow = $headerRow + 1;
                 $dataEndRow = $sheet->getHighestRow();
                 
-                // Alternating row colors
+                // Alternating colors
                 for ($i = $dataStartRow; $i <= $dataEndRow; $i++) {
                     if ($i % 2 == 0) {
                         $sheet->getStyle('A' . $i . ':' . $lastColumn . $i)->applyFromArray([
@@ -267,7 +304,7 @@ class AssetsExport implements
                     }
                 }
                 
-                // Border untuk semua data
+                // Borders
                 $sheet->getStyle('A' . $headerRow . ':' . $lastColumn . $dataEndRow)->applyFromArray([
                     'borders' => [
                         'allBorders' => [
@@ -277,7 +314,6 @@ class AssetsExport implements
                     ]
                 ]);
                 
-                // FORMAT KHUSUS
                 // Format Rupiah
                 $currencyColumns = ['M', 'N', 'P'];
                 foreach ($currencyColumns as $col) {
@@ -287,31 +323,39 @@ class AssetsExport implements
                 }
                 
                 // Format Persentase
-                $sheet->getStyle('Q' . $dataStartRow . ':' . 'Q' . $dataEndRow)
+                $sheet->getStyle('Q' . $dataStartRow . ':Q' . $dataEndRow)
                       ->getNumberFormat()
                       ->setFormatCode('0.00"%";');
-                
-                // Auto-size kolom
-                foreach (range('A', $lastColumn) as $col) {
-                    $sheet->getColumnDimension($col)->setAutoSize(true);
-                }
                 
                 // Freeze header
                 $sheet->freezePane('A' . ($headerRow + 1));
                 
                 // Auto filter
-                $headerRange = 'A' . $headerRow . ':' . $lastColumn . $headerRow;
-                $sheet->setAutoFilter($headerRange);
+                $sheet->setAutoFilter('A' . $headerRow . ':' . $lastColumn . $headerRow);
                 
-                // FOOTER (dari konfigurasi)
+                // FOOTER
                 $footerRow = $dataEndRow + 2;
                 $sheet->mergeCells('A' . $footerRow . ':' . $lastColumn . $footerRow);
-                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s') . ' | ' . $this->systemName);
+                $sheet->setCellValue('A' . $footerRow, 'Dicetak pada: ' . $this->exportDate->format('d/m/Y H:i:s') . ' | ' . $this->systemName . ' | Total Spesifikasi: ' . $specCount);
                 $sheet->getStyle('A' . $footerRow)->applyFromArray([
                     'font' => ['size' => 9, 'italic' => true, 'color' => ['rgb' => '6C757D']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
             },
         ];
+    }
+    
+    /**
+     * Convert column number to letter (1=A, 2=B, ..., 26=Z, 27=AA, ...)
+     */
+    private function getColumnLetter($number)
+    {
+        $letter = '';
+        while ($number > 0) {
+            $number--;
+            $letter = chr(65 + ($number % 26)) . $letter;
+            $number = intval($number / 26);
+        }
+        return $letter;
     }
 }

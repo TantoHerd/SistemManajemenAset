@@ -12,10 +12,10 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scanModal">
             <i class="bi bi-upc-scan"></i> Scan QR Code
         </button>
-        <a href="{{ route('admin.assets.create') }}" class="btn btn-success">
+        <a href="{{ request()->routeIs('admin.assets.create') }}" class="btn btn-success">
             <i class="bi bi-plus-lg"></i> Tambah Aset
         </a>
-        <a href="{{ url('/assets/import') }}" class="btn btn-warning">
+        <a href="{{ route('admin.assets.import') }}" class="btn btn-warning">
             <i class="bi bi-upload"></i> Import
         </a>
         <div class="dropdown">

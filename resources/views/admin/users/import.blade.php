@@ -38,14 +38,14 @@
                 </div>
                 
                 <div class="mb-4">
-                    <a href="{{ url('/users/import/template') }}" class="btn btn-outline-primary">
+                    <a href="{{ route('admin.users.import.template') }}" class="btn btn-outline-primary">
                         <i class="bi bi-download"></i> Download Template Excel
                     </a>
                 </div>
                 
                 <hr>
                 
-                <form action="{{ url('/users/import') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     
                     <div class="mb-3">

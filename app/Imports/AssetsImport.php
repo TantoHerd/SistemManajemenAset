@@ -5,6 +5,8 @@ namespace App\Imports;
 use App\Models\Asset;
 use App\Models\Category;
 use App\Models\Location;
+use App\Models\CategorySpecification;
+use App\Models\AssetSpecification;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -13,7 +15,6 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithProgressBar;
 use Maatwebsite\Excel\Concerns\Importable;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatchInserts, WithChunkReading, WithProgressBar
 {
@@ -23,6 +24,7 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
     protected $successCount = 0;
     protected $failures = [];
     protected $columnMap = [];
+    protected $specKeys = [];
 
     public function __construct()
     {
@@ -43,6 +45,29 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
             'garansi_berakhir' => ['garansi_berakhir', 'garansi berakhir', 'warranty_expiry', 'garansi'],
             'catatan' => ['catatan', 'notes', 'keterangan'],
         ];
+        
+        // Load semua spec key dari database
+        $this->loadSpecKeys();
+    }
+    
+    /**
+     * Load spec keys dari database
+     */
+    private function loadSpecKeys()
+    {
+        $specs = CategorySpecification::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['key', 'label']);
+            
+        foreach ($specs as $spec) {
+            $this->specKeys[] = $spec->key;
+            // Tambahkan ke columnMap agar bisa di-map
+            $this->columnMap[$spec->key] = [
+                $spec->key,
+                strtolower($spec->label),
+                str_replace(' ', '_', strtolower($spec->label))
+            ];
+        }
     }
 
     public function model(array $row)
@@ -83,14 +108,20 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
         // Cari category
         $category = Category::where('code', $mappedRow['kode_kategori'])->first();
         if (!$category) {
-            $this->failures[] = "Baris {$this->rowCount}: Kode kategori '{$mappedRow['kode_kategori']}' tidak ditemukan";
+            $category = Category::where('name', $mappedRow['kode_kategori'])->first();
+        }
+        if (!$category) {
+            $this->failures[] = "Baris {$this->rowCount}: Kategori '{$mappedRow['kode_kategori']}' tidak ditemukan";
             return null;
         }
 
         // Cari location
         $location = Location::where('code', $mappedRow['kode_lokasi'])->first();
         if (!$location) {
-            $this->failures[] = "Baris {$this->rowCount}: Kode lokasi '{$mappedRow['kode_lokasi']}' tidak ditemukan";
+            $location = Location::where('name', $mappedRow['kode_lokasi'])->first();
+        }
+        if (!$location) {
+            $this->failures[] = "Baris {$this->rowCount}: Lokasi '{$mappedRow['kode_lokasi']}' tidak ditemukan";
             return null;
         }
 
@@ -109,7 +140,8 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
 
         $this->successCount++;
 
-        return new Asset([
+        // Simpan asset
+        $asset = new Asset([
             'asset_code' => $assetCode,
             'name' => $mappedRow['nama_aset'],
             'serial_number' => $mappedRow['serial_number'] ?? null,
@@ -127,6 +159,48 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
             'notes' => $mappedRow['catatan'] ?? null,
             'warranty_expiry' => $warrantyExpiry,
         ]);
+
+        // Simpan spesifikasi
+        $this->saveSpecifications($asset, $mappedRow, $category);
+
+        return $asset;
+    }
+
+    /**
+     * Simpan spesifikasi aset
+     */
+    private function saveSpecifications(Asset $asset, array $mappedRow, Category $category)
+    {
+        $categorySpecs = CategorySpecification::where('category_id', $category->id)
+            ->where('is_active', true)
+            ->get();
+            
+        foreach ($categorySpecs as $spec) {
+            $value = null;
+            
+            // Cari dari mappedRow dengan berbagai kemungkinan key
+            $possibleKeys = [
+                $spec->key,
+                strtolower($spec->label),
+                str_replace(' ', '_', strtolower($spec->label))
+            ];
+            
+            foreach ($possibleKeys as $key) {
+                if (isset($mappedRow[$key]) && $mappedRow[$key] !== '' && $mappedRow[$key] !== null) {
+                    $value = $mappedRow[$key];
+                    break;
+                }
+            }
+            
+            // Hanya simpan jika ada value
+            if ($value !== null && $value !== '') {
+                AssetSpecification::create([
+                    'asset_id' => $asset->id,
+                    'spec_key' => $spec->key,
+                    'spec_value' => $value
+                ]);
+            }
+        }
     }
 
     /**
@@ -136,14 +210,12 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
     {
         $mapped = [];
         
-        // Debug: Log semua key yang ada
         Log::info('Available keys: ' . json_encode(array_keys($row)));
         
         foreach ($this->columnMap as $target => $possibleKeys) {
             foreach ($possibleKeys as $key) {
-                // Cek case insensitive
                 $foundKey = $this->findKeyCaseInsensitive($row, $key);
-                if ($foundKey) {
+                if ($foundKey && !empty($row[$foundKey]) && $row[$foundKey] !== null) {
                     $mapped[$target] = $row[$foundKey];
                     break;
                 }
@@ -156,7 +228,7 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
     private function findKeyCaseInsensitive($array, $search)
     {
         foreach (array_keys($array) as $key) {
-            if (strtolower($key) === strtolower($search)) {
+            if (strtolower(trim($key)) === strtolower(trim($search))) {
                 return $key;
             }
         }
@@ -172,23 +244,19 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
             return null;
         }
         
-        // Jika sudah dalam format Y-m-d
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             return $date;
         }
         
-        // Jika dalam format d/m/Y
         if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $date)) {
             $parts = explode('/', $date);
             return $parts[2] . '-' . $parts[1] . '-' . $parts[0];
         }
         
-        // Jika dalam format timestamp Excel
         if (is_numeric($date)) {
             return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date)->format('Y-m-d');
         }
         
-        // Coba parse dengan strtotime
         $timestamp = strtotime($date);
         if ($timestamp) {
             return date('Y-m-d', $timestamp);
@@ -199,9 +267,7 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
 
     public function rules(): array
     {
-        return [
-            // Rules akan divalidasi manual di atas
-        ];
+        return [];
     }
 
     public function batchSize(): int
@@ -230,7 +296,7 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
             'disposed' => 'disposed',
         ];
         
-        $status = strtolower(trim($status));
+        $status = strtolower(trim($status ?? ''));
         return $statusMap[$status] ?? 'available';
     }
 
