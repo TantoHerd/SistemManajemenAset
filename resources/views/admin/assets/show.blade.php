@@ -249,6 +249,158 @@
     </div>
 </div>
 
+{{-- DOKUMEN PENDUKUNG --}}
+<div class="card mt-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-folder2-open text-primary me-1"></i>Dokumen Pendukung ({{ $asset->documents->count() }})
+        </h6>
+        <div class="d-flex gap-2">
+            @if($asset->documents->count() > 0)
+            <button class="btn btn-outline-success btn-sm" onclick="downloadAll('{{ route('admin.assets.documents.download-folder', $asset) }}')">
+                <i class="bi bi-download me-1"></i>Download Semua
+            </button>
+            @endif
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadDocModal">
+                <i class="bi bi-plus-circle me-1"></i>Upload
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        @php
+            $groupedDocs = $asset->documents->groupBy('folder_path');
+        @endphp
+        
+        @if($groupedDocs->count() > 0)
+            @foreach($groupedDocs as $folderPath => $docs)
+            <div class="border-bottom">
+                <!-- Folder Header -->
+                <div class="bg-light px-3 py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-folder-fill text-warning me-1"></i>
+                        <strong>{{ $folderPath ?: 'Uncategorized' }}</strong>
+                        <span class="badge bg-secondary ms-2">{{ $docs->count() }} file</span>
+                    </div>
+                    <a href="{{ route('admin.assets.documents.download-folder', ['asset' => $asset, 'folder_path' => $folderPath]) }}" 
+                       class="btn btn-sm btn-outline-success" title="Download folder">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+                
+                <!-- File List -->
+                <div class="list-group list-group-flush">
+                    @foreach($docs as $doc)
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <!-- Preview Gambar -->
+                            @if($doc->isImage())
+                                <img src="{{ $doc->file_url }}" class="rounded" style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;" 
+                                     onclick="previewImage('{{ $doc->file_url }}', '{{ $doc->name }}')">
+                            @else
+                                <div class="bg-light rounded p-2" style="width: 40px; height: 40px; text-align: center;">
+                                    <i class="bi {{ $doc->file_icon }} fs-6 text-primary"></i>
+                                </div>
+                            @endif
+                            <div>
+                                <div class="fw-semibold small">{{ $doc->name }}</div>
+                                <small class="text-muted">
+                                    {{ $doc->file_size_formatted }} • 
+                                    <span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($doc->file_type) }}</span>
+                                    • {{ $doc->created_at->diffForHumans() }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <a href="{{ route('admin.documents.download', $doc) }}" class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" title="Download">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    onclick="confirmDelete('{{ route('admin.documents.destroy', $doc) }}', 'Hapus {{ $doc->name }}?')" 
+                                    data-bs-toggle="tooltip" title="Hapus">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endforeach
+        @else
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
+            <p class="mb-0">Belum ada dokumen pendukung</p>
+        </div>
+        @endif
+    </div>
+</div>
+
+{{-- MODAL UPLOAD --}}
+<div class="modal fade" id="uploadDocModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ route('admin.assets.documents.store', $asset) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-upload me-1"></i>Upload Dokumen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">File <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control" required>
+                        <small class="text-muted">Max: 10MB</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Dokumen</label>
+                        <input type="text" name="name" class="form-control" placeholder="Kosongkan untuk nama file asli">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tipe</label>
+                            <select name="file_type" class="form-select">
+                                <option value="">-- Pilih --</option>
+                                <option value="invoice">Invoice / Nota</option>
+                                <option value="photo">Foto</option>
+                                <option value="manual">Manual Book</option>
+                                <option value="other">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Folder</label>
+                            <input type="text" name="folder_path" class="form-control" 
+                                   placeholder="Auto: {{ strtoupper(str_replace(' ', '-', $asset->category->name ?? 'Uncategorized')) }}">
+                            <small class="text-muted">Kosongkan untuk auto</small>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Catatan</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Opsional"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL PREVIEW GAMBAR --}}
+<div class="modal fade" id="previewImageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="previewTitle"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="previewImage" src="" alt="Preview" class="img-fluid rounded">
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- FINANSIAL (Full Width) --}}
 <div class="row g-3 mt-2">
     <div class="col-12">
@@ -425,6 +577,18 @@ function toggleCheckInOut(assetId) {
         },
         error: function() { alert('Terjadi kesalahan'); }
     });
+}
+
+// Preview Gambar
+function previewImage(url, title) {
+    document.getElementById('previewImage').src = url;
+    document.getElementById('previewTitle').textContent = title;
+    new bootstrap.Modal(document.getElementById('previewImageModal')).show();
+}
+
+// Download Semua
+function downloadAll(url) {
+    window.location.href = url;
 }
 </script>
 @endpush

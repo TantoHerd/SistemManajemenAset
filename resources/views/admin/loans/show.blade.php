@@ -10,6 +10,10 @@
 
 @section('header-actions')
     <div class="d-flex gap-2">
+        <a href="{{ route('admin.loans.print', $loan) }}" class="btn btn-outline-secondary" target="_blank">
+            <i class="bi bi-printer"></i> Cetak Bukti
+        </a>
+        
         @if($loan->status === 'pending')
             <form action="{{ route('admin.loans.approve', $loan) }}" method="POST" class="d-inline">
                 @csrf

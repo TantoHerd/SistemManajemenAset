@@ -203,7 +203,7 @@ class AssetController extends Controller
      */
     public function show(Asset $asset)
     {
-        $asset->load(['category', 'location', 'assignedTo', 'maintenances', 'specifications']);
+        $asset->load(['category', 'location', 'assignedTo', 'maintenances', 'specifications', 'documents']);
         
         return view('admin.assets.show', compact('asset'));
     }

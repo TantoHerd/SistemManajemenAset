@@ -11,7 +11,9 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\CategorySpecificationController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\LoanController;
+use App\Http\Controllers\Admin\ReportController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\AssetDocumentController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -63,6 +65,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('assets/{asset}/generate-barcode', [AssetController::class, 'generateBarcode'])->name('assets.generate-barcode');
         Route::get('assets/{asset}/print-label', [AssetController::class, 'printLabel'])->name('assets.print-label');
         Route::post('assets/{asset}/toggle-checkinout', [AssetController::class, 'toggleCheckInOut'])->name('assets.toggle-checkinout');
+        
+        // Asset Documents
+        Route::post('assets/{asset}/documents', [AssetDocumentController::class, 'store'])->name('assets.documents.store');
+        Route::get('documents/{document}/download', [AssetDocumentController::class, 'download'])->name('documents.download');
+        Route::get('assets/{asset}/documents/download-folder', [AssetDocumentController::class, 'downloadFolder'])->name('assets.documents.download-folder');
+        Route::delete('documents/{document}', [AssetDocumentController::class, 'destroy'])->name('documents.destroy');
 
         // ============================================
         // CATEGORIES
@@ -113,21 +121,30 @@ Route::middleware(['auth'])->group(function () {
         // ============================================
         // MAINTENANCE
         // ============================================
+
+        // 1. ROUTE TANPA PARAMETER DI ATAS DULU
         Route::middleware('permission:view maintenances')->group(function () {
             Route::get('maintenances', [MaintenanceController::class, 'index'])->name('maintenances.index');
-            Route::get('maintenances/{maintenance}', [MaintenanceController::class, 'show'])->name('maintenances.show');
             Route::get('maintenances/schedule', [MaintenanceController::class, 'schedule'])->name('maintenances.schedule');
             Route::get('maintenances/history', [MaintenanceController::class, 'history'])->name('maintenances.history');
             Route::get('maintenances/report', [MaintenanceController::class, 'report'])->name('maintenances.report');
         });
+
         Route::middleware('permission:create maintenances')->group(function () {
             Route::get('maintenances/create', [MaintenanceController::class, 'create'])->name('maintenances.create');
             Route::post('maintenances', [MaintenanceController::class, 'store'])->name('maintenances.store');
         });
+
+        // 2. ROUTE DENGAN PARAMETER DI BAWAH
+        Route::middleware('permission:view maintenances')->group(function () {
+            Route::get('maintenances/{maintenance}', [MaintenanceController::class, 'show'])->name('maintenances.show');
+        });
+
         Route::middleware('permission:edit maintenances')->group(function () {
             Route::get('maintenances/{maintenance}/edit', [MaintenanceController::class, 'edit'])->name('maintenances.edit');
             Route::put('maintenances/{maintenance}', [MaintenanceController::class, 'update'])->name('maintenances.update');
         });
+
         Route::middleware('permission:delete maintenances')->group(function () {
             Route::delete('maintenances/{maintenance}', [MaintenanceController::class, 'destroy'])->name('maintenances.destroy');
         });
@@ -135,13 +152,13 @@ Route::middleware(['auth'])->group(function () {
         // ============================================
         // LOANS
         // ============================================
-        Route::middleware('permission:view loans')->group(function () {
-            Route::get('loans', [LoanController::class, 'index'])->name('loans.index');
-            Route::get('loans/{loan}', [LoanController::class, 'show'])->name('loans.show');
-        });
         Route::middleware('permission:create loans')->group(function () {
             Route::get('loans/create', [LoanController::class, 'create'])->name('loans.create');
             Route::post('loans', [LoanController::class, 'store'])->name('loans.store');
+        });
+        Route::middleware('permission:view loans')->group(function () {
+            Route::get('loans', [LoanController::class, 'index'])->name('loans.index');
+            Route::get('loans/{loan}', [LoanController::class, 'show'])->name('loans.show');
         });
         Route::middleware('permission:approve loans')->group(function () {
             Route::post('loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve');
@@ -154,6 +171,9 @@ Route::middleware(['auth'])->group(function () {
         });
         Route::middleware('permission:cancel loans')->group(function () {
             Route::post('loans/{loan}/cancel', [LoanController::class, 'cancel'])->name('loans.cancel');
+        });
+        Route::middleware('permission:view loans')->group(function () {
+            Route::get('loans/{loan}/print', [LoanController::class, 'printReceipt'])->name('loans.print');
         });
         
         // ============================================
@@ -195,6 +215,16 @@ Route::middleware(['auth'])->group(function () {
         });
         Route::middleware('permission:manage notifications')->group(function () {
             Route::delete('notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+        });
+
+        // Reports
+        Route::middleware('permission:view reports')->group(function () {
+            Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+        });
+        Route::middleware('permission:view reports')->group(function () {
+            Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
+            Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
         });
     });
 });

@@ -11,10 +11,10 @@
 
 @section('header-actions')
     <div class="d-flex gap-2">
-        <a href="{{ route('admin.users.show', $user) }}" class="btn btn-info">
+        <a href="{{ route('admin.users.show', $user) }}" class="btn btn-info btn-sm">
             <i class="bi bi-eye"></i> Detail
         </a>
-        <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
+        <a href="{{ route('admin.users.index') }}" class="btn btn-secondary btn-sm">
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
     </div>
@@ -38,7 +38,7 @@
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="name" class="form-label fw-semibold text-danger">
+                            <label for="name" class="form-label fw-semibold">
                                 Nama Lengkap <span class="text-danger">*</span>
                             </label>
                             <input type="text" name="name" id="name" 
@@ -50,7 +50,7 @@
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label fw-semibold text-danger">
+                            <label for="email" class="form-label fw-semibold">
                                 Email <span class="text-danger">*</span>
                             </label>
                             <input type="email" name="email" id="email" 
@@ -68,29 +68,56 @@
                                 No. Telepon
                             </label>
                             <input type="text" name="phone" id="phone" 
-                                   class="form-control @error('phone') is-invalid @enderror"
+                                   class="form-control"
                                    value="{{ old('phone', $user->phone) }}">
-                            @error('phone')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label for="role" class="form-label fw-semibold text-danger">
-                                Role <span class="text-danger">*</span>
+                            <label for="status" class="form-label fw-semibold">
+                                Status <span class="text-danger">*</span>
                             </label>
-                            <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
-                                <option value="">-- Pilih Role --</option>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->name }}" {{ old('role', $userRole) == $role->name ? 'selected' : '' }}>
-                                        {{ ucfirst($role->name) }}
-                                    </option>
-                                @endforeach
+                            <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
+                                <option value="active" {{ old('status', $user->status) == 'active' ? 'selected' : '' }}>Aktif</option>
+                                <option value="inactive" {{ old('status', $user->status) == 'inactive' ? 'selected' : '' }}>Nonaktif</option>
                             </select>
-                            @error('role')
+                            @error('status')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
                         </div>
+                    </div>
+                    
+                    <!-- ROLES - MULTIPLE CHECKBOX -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Role <span class="text-danger">*</span>
+                        </label>
+                        <div class="card bg-light border">
+                            <div class="card-body p-2" style="max-height: 200px; overflow-y: auto;">
+                                @foreach($roles as $role)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="roles[]" 
+                                           value="{{ $role->name }}" 
+                                           id="role_{{ $role->id }}"
+                                           {{ in_array($role->name, old('roles', $userRoles ?? [])) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="role_{{ $role->id }}">
+                                        <strong>{{ ucfirst(str_replace('_', ' ', $role->name)) }}</strong>
+                                        @if($role->name === 'super_admin')
+                                            <span class="badge bg-danger ms-1">Full Access</span>
+                                        @elseif($role->name === 'admin')
+                                            <span class="badge bg-warning ms-1">Administrator</span>
+                                        @elseif($role->name === 'technician')
+                                            <span class="badge bg-info ms-1">Teknisi</span>
+                                        @endif
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <small class="text-muted">Bisa pilih lebih dari satu role</small>
+                        @error('roles')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                     </div>
                     
                     <div class="mb-3">
@@ -98,29 +125,23 @@
                             Alamat
                         </label>
                         <textarea name="address" id="address" rows="2" 
-                                  class="form-control @error('address') is-invalid @enderror">{{ old('address', $user->address) }}</textarea>
-                        @error('address')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="status" class="form-label fw-semibold text-danger">
-                            Status <span class="text-danger">*</span>
-                        </label>
-                        <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
-                            <option value="active" {{ old('status', $user->status) == 'active' ? 'selected' : '' }}>Aktif</option>
-                            <option value="inactive" {{ old('status', $user->status) == 'inactive' ? 'selected' : '' }}>Nonaktif</option>
-                        </select>
-                        @error('status')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
+                                  class="form-control">{{ old('address', $user->address) }}</textarea>
                     </div>
                     
                     <hr>
                     
+                    <!-- Info -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <small class="text-muted"><i class="bi bi-clock"></i> Dibuat: {{ $user->created_at->format('d/m/Y H:i') }}</small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted"><i class="bi bi-pencil"></i> Terakhir diupdate: {{ $user->updated_at->format('d/m/Y H:i') }}</small>
+                        </div>
+                    </div>
+                    
                     <div class="d-flex justify-content-between align-items-center">
-                        <div>
+                        <div class="d-flex gap-2">
                             <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
                                 <i class="bi bi-x-circle"></i> Batal
                             </a>

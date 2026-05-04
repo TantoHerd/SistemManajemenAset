@@ -412,6 +412,11 @@ class Asset extends Model
         AssetSpecification::setSpecifications($this, $specs);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(AssetDocument::class);
+    }
+
     /**
      * Boot the model.
      */

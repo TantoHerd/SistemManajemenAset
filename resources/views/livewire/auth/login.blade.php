@@ -82,18 +82,31 @@ new #[Layout('components.layouts.auth')] class extends Component {
 @endsection
 
 <div>
-    <x-auth-header :title="__('Welcome to :app!', ['app' => config('app.name')])" :description="__('Enter your email and password below to log in')" />
 
     <!-- Session Status -->
     @if (session('status'))
-        <div class="alert alert-info mb-4">
-            {{ session('status') }}
+        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-check-circle me-1"></i> {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    <form wire:submit="login" class="mb-6">
-        <div class="mb-6">
-            <label for="email" class="form-label">{{ __('Email or Username') }}</label>
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            @foreach ($errors->all() as $error)
+                <span>{{ $error }}</span>
+            @endforeach
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <form wire:submit="login">
+        <!-- Email -->
+        <div class="mb-3">
+            <label for="email" class="form-label">
+                <i class="bi bi-envelope me-1"></i>Email
+            </label>
             <input
                 wire:model="email"
                 type="email"
@@ -102,19 +115,22 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 required
                 autofocus
                 autocomplete="email"
-                placeholder="{{ __('Enter your email') }}"
+                placeholder="Masukkan email Anda"
             >
             @error('email')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
 
-        <div class="mb-6 form-password-toggle">
-            <div class="d-flex justify-content-between">
-                <label for="password" class="form-label">{{ __('Password') }}</label>
+        <!-- Password -->
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <label for="password" class="form-label mb-0">
+                    <i class="bi bi-lock me-1"></i>Password
+                </label>
                 @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" wire:navigate>
-                        <span>{{ __('Forgot Password?') }}</span>
+                    <a href="{{ route('password.request') }}" wire:navigate class="forgot-link small">
+                        Lupa Password?
                     </a>
                 @endif
             </div>
@@ -126,37 +142,45 @@ new #[Layout('components.layouts.auth')] class extends Component {
                     id="password"
                     required
                     autocomplete="current-password"
-                    placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
+                    placeholder="Masukkan password"
                 >
-                <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
-                @error('password')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
+                <span class="input-group-text" onclick="togglePassword()">
+                    <i class="bi bi-eye-slash" id="toggleIcon"></i>
+                </span>
             </div>
+            @error('password')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
         </div>
 
-        <div class="mb-8">
-            <div class="d-flex justify-content-between mt-8">
-                <div class="form-check mb-0 ms-2">
-                    <input wire:model="remember" type="checkbox" class="form-check-input" id="remember">
-                    <label class="form-check-label" for="remember">
-                        {{ __('Remember Me') }}
-                    </label>
-                </div>
-            </div>
+        <!-- Remember Me -->
+        <div class="form-check mb-4">
+            <input wire:model="remember" type="checkbox" class="form-check-input" id="remember">
+            <label class="form-check-label small" for="remember">Ingat Saya</label>
         </div>
 
-        <div class="mb-6">
-            <button type="submit" class="btn btn-primary d-grid w-100">{{ __('Login') }}</button>
-        </div>
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary w-100" wire:loading.attr="disabled">
+            <span wire:loading.remove wire:target="login">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Login
+            </span>
+            <span wire:loading wire:target="login">
+                <span class="spinner-border spinner-border-sm me-1"></span>Memproses...
+            </span>
+        </button>
     </form>
-
-    {{-- @if (Route::has('register'))
-        <p class="text-center">
-            <span>{{ __('New on our platform?') }}</span>
-            <a href="{{ route('register') }}" wire:navigate>
-                <span>{{ __('Create an account') }}</span>
-            </a>
-        </p>
-    @endif --}}
 </div>
+
+<script>
+function togglePassword() {
+    const input = document.getElementById('password');
+    const icon = document.getElementById('toggleIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye-slash';
+    }
+}
+</script>

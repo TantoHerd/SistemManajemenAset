@@ -105,9 +105,18 @@
             </ul>
         </li>
         @endcan
+
+        <!-- Report-->
+        @can('view reports')
+        <li class="nav-item">
+            <a class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" href="{{ route('admin.reports.index') }}">
+                <i class="bi bi-file-earmark-bar-graph"></i> Laporan
+            </a>
+        </li>
+        @endcan
         
         <!-- Laporan -->
-        @canany(['export assets', 'view reports'])
+        {{-- @canany(['export assets', 'view reports'])
         <li class="nav-item has-submenu">
             <a class="nav-link" href="javascript:void(0)" onclick="toggleSubmenu('submenu-report')">
                 <i class="bi bi-file-earmark-text"></i> Laporan & Export
@@ -120,7 +129,7 @@
                 @endcan
             </ul>
         </li>
-        @endcanany
+        @endcanany --}}
         
         <!-- Konfigurasi -->
         @can('view settings')

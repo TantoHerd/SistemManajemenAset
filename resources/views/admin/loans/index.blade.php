@@ -69,6 +69,9 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
+                                <a href="{{ route('admin.loans.print', $loan) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Cetak">
+                                    <i class="bi bi-printer"></i>
+                                </a>
                                 <a href="{{ route('admin.loans.show', $loan) }}" class="btn btn-sm btn-info" title="Detail">
                                     <i class="bi bi-eye"></i>
                                 </a>

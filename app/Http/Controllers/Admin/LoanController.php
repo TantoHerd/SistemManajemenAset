@@ -8,6 +8,7 @@ use App\Models\Loan;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class LoanController extends Controller
 {
@@ -202,5 +203,34 @@ class LoanController extends Controller
         $loan->update(['status' => Loan::STATUS_CANCELLED]);
 
         return back()->with('success', 'Peminjaman dibatalkan');
+    }
+
+    /**
+     * Print bukti peminjaman.
+     */
+    public function printReceipt(Loan $loan)
+    {
+        $loan->load(['asset', 'user', 'approver']);
+        
+        $companyName = \App\Models\Setting::where('key', 'company_name')->value('value') ?? 'PT. NAMA PERUSAHAAN';
+        $systemName = \App\Models\Setting::where('key', 'system_name')->value('value') ?? 'SIMASET';
+        $companyLogo = \App\Models\Setting::where('key', 'company_logo')->value('value') ?? null;
+
+        // Encode logo jadi base64 untuk DomPDF
+        $logoBase64 = null;
+        if ($companyLogo) {
+            $logoPath = storage_path('app/public/' . $companyLogo);
+            if (file_exists($logoPath)) {
+                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($logoPath));
+            }
+        }
+
+        $pdf = Pdf::loadView('admin.loans.receipt', compact(
+            'loan', 'companyName', 'systemName', 'companyLogo', 'logoBase64'
+        ));
+        
+        $pdf->setPaper('A5', 'landscape'); // ← LANDSCAPE
+        
+        return $pdf->stream('bukti-peminjaman-' . $loan->loan_code . '.pdf');
     }
 }
