@@ -155,4 +155,61 @@ setInterval(loadNotifications, 30000);
 if (url.includes('/admin/loans')) {
     document.getElementById('submenu-loan')?.classList.add('show');
 }
+
+// Global Delete Confirmation with SweetAlert
+function confirmDelete(url, message = 'Data akan dihapus permanen!', title = 'Yakin?') {
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash me-1"></i>Ya, Hapus!',
+        cancelButtonText: '<i class="bi bi-x me-1"></i>Batal',
+        reverseButtons: true,
+        showCloseButton: true,
+        backdrop: 'rgba(0,0,0,0.5)',
+        customClass: {
+            popup: 'rounded-4',
+            title: 'fw-bold',
+            confirmButton: 'rounded-pill px-4',
+            cancelButton: 'rounded-pill px-4',
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Menghapus...',
+                text: 'Mohon tunggu sebentar',
+                icon: 'info',
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            form.innerHTML = `
+                <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]').content}">
+                <input type="hidden" name="_method" value="DELETE">
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+// Untuk form delete inline (pakai event)
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            confirmDelete(this.action, 'Data akan dihapus permanen dan tidak dapat dikembalikan!');
+        });
+    });
+});
 </script>

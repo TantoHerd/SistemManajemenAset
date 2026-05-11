@@ -70,28 +70,47 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-        $validator = Validator::make($request->all(), [
+        // Jika ada cropped image (base64)
+        if ($request->filled('cropped_image')) {
+            // Hapus avatar lama
+            if ($user->avatar && file_exists(storage_path('app/public/' . $user->avatar))) {
+                unlink(storage_path('app/public/' . $user->avatar));
+            }
+
+            // Decode base64
+            $image = $request->cropped_image;
+            $image = str_replace('data:image/jpeg;base64,', '', $image);
+            $image = str_replace('data:image/png;base64,', '', $image);
+            $image = str_replace(' ', '+', $image);
+            $imageData = base64_decode($image);
+
+            // Simpan file
+            $filename = 'avatars/' . time() . '_avatar.jpg';
+            file_put_contents(storage_path('app/public/' . $filename), $imageData);
+
+            // Update user
+            \App\Models\User::where('id', $user->id)->update(['avatar' => $filename]);
+
+            return back()->with('success', 'Avatar berhasil diubah');
+        }
+
+        // Fallback: upload biasa
+        $request->validate([
             'avatar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
-
         if ($request->hasFile('avatar')) {
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            if ($user->avatar && file_exists(storage_path('app/public/' . $user->avatar))) {
+                unlink(storage_path('app/public/' . $user->avatar));
             }
 
             $file = $request->file('avatar');
             $filename = 'avatars/' . time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-            $file->storeAs('public', $filename);
+            $file->move(storage_path('app/public/avatars'), basename($filename));
             
-            User::where('id', $user->id)->update([
-                'avatar' => $filename,
-            ]);
+            \App\Models\User::where('id', $user->id)->update(['avatar' => $filename]);
         }
 
-        return redirect()->back()->with('success', 'Avatar berhasil diubah');
+        return back()->with('success', 'Avatar berhasil diubah');
     }
 }

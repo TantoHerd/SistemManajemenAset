@@ -26,7 +26,7 @@ class AssetController extends Controller
      */
     public function index(Request $request)
     {
-        // Simpan filter ke session (tanpa assigned_to)
+        // Simpan filter ke session
         if ($request->has('category') || $request->has('location') || $request->has('status') || $request->has('search')) {
             session([
                 'asset_filter_category' => $request->category,
@@ -46,14 +46,45 @@ class AssetController extends Controller
         $perPage = $request->get('per_page', session('asset_per_page', 15));
         session(['asset_per_page' => $perPage]);
         
+        // ============================================
+        // SORTING
+        // ============================================
+        $sort = $request->sort ?? 'created_at';
+        $direction = $request->direction ?? 'desc';
+        
+        $allowedSorts = [
+            'asset_code', 'name', 'status', 'purchase_date', 'purchase_price', 
+            'current_value', 'created_at',
+            'category_name', // ← Kategori
+            'location_name',  // ← Lokasi
+        ];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'created_at';
+        }
+        if (!in_array($direction, ['asc', 'desc'])) {
+            $direction = 'desc';
+        }
+        
         $query = Asset::with(['category', 'location', 'assignedTo']);
+
+        // Join tabel untuk sort kategori & lokasi
+        if ($sort === 'category_name') {
+            $query->join('categories', 'assets.category_id', '=', 'categories.id')
+                ->select('assets.*', 'categories.name as category_name')
+                ->orderBy('categories.name', $direction);
+        } elseif ($sort === 'location_name') {
+            $query->join('locations', 'assets.location_id', '=', 'locations.id')
+                ->select('assets.*', 'locations.name as location_name')
+                ->orderBy('locations.name', $direction);
+        } else {
+            $query->orderBy($sort, $direction);
+        }
         
         // Apply filters
         if ($categoryFilter) {
             $query->where('category_id', $categoryFilter);
         }
         
-        // Filter lokasi induk - mencakup semua sub lokasi
         if ($locationFilter) {
             $locationIds = $this->getLocationIds($locationFilter);
             $query->whereIn('location_id', $locationIds);
@@ -66,20 +97,24 @@ class AssetController extends Controller
         if ($searchFilter) {
             $query->where(function($q) use ($searchFilter) {
                 $q->where('asset_code', 'like', "%{$searchFilter}%")
-                  ->orWhere('name', 'like', "%{$searchFilter}%")
-                  ->orWhere('serial_number', 'like', "%{$searchFilter}%");
+                ->orWhere('name', 'like', "%{$searchFilter}%")
+                ->orWhere('serial_number', 'like', "%{$searchFilter}%");
             });
         }
         
-        $assets = $query->latest()->paginate($perPage);
+        // Apply sorting
+        $assets = $query->orderBy($sort, $direction)->paginate($perPage);
         
         // Data untuk filter
         $locations = Location::whereNull('parent_id')->orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $statuses = Asset::$statuses;
         
-        return view('admin.assets.index', compact('assets', 'categories', 'locations', 'statuses', 
-                    'categoryFilter', 'locationFilter', 'statusFilter', 'searchFilter', 'perPage'));
+        return view('admin.assets.index', compact(
+            'assets', 'categories', 'locations', 'statuses', 
+            'categoryFilter', 'locationFilter', 'statusFilter', 'searchFilter', 'perPage',
+            'sort', 'direction' // ← KIRIM KE VIEW
+        ));
     }
     
     /**
@@ -110,7 +145,7 @@ class AssetController extends Controller
         ]);
         
         // Juga hapus dari request
-        return response()->json(['success' => true]);
+        return redirect()->route('admin.assets.index');
     }
 
     /**

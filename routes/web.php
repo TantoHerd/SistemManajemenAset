@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\LoanController;
 use App\Http\Controllers\Admin\ReportController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AssetDocumentController;
+use App\Http\Controllers\Admin\MecardController;
+use App\Http\Controllers\Admin\CctvController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -75,18 +77,7 @@ Route::middleware(['auth'])->group(function () {
         // ============================================
         // CATEGORIES
         // ============================================
-        Route::middleware('permission:view categories')->group(function () {
-            Route::resource('categories', CategoryController::class)->only(['index', 'show']);
-        });
-        Route::middleware('permission:create categories')->group(function () {
-            Route::resource('categories', CategoryController::class)->only(['create', 'store']);
-        });
-        Route::middleware('permission:edit categories')->group(function () {
-            Route::resource('categories', CategoryController::class)->only(['edit', 'update']);
-        });
-        Route::middleware('permission:delete categories')->group(function () {
-            Route::resource('categories', CategoryController::class)->only(['destroy']);
-        });
+        Route::resource('categories', CategoryController::class);
         
         // Spesifikasi Kategori
         Route::middleware('permission:manage specifications')->group(function () {
@@ -105,18 +96,7 @@ Route::middleware(['auth'])->group(function () {
         // ============================================
         // LOCATIONS
         // ============================================
-        Route::middleware('permission:view locations')->group(function () {
-            Route::resource('locations', LocationController::class)->only(['index', 'show']);
-        });
-        Route::middleware('permission:create locations')->group(function () {
-            Route::resource('locations', LocationController::class)->only(['create', 'store']);
-        });
-        Route::middleware('permission:edit locations')->group(function () {
-            Route::resource('locations', LocationController::class)->only(['edit', 'update']);
-        });
-        Route::middleware('permission:delete locations')->group(function () {
-            Route::resource('locations', LocationController::class)->only(['destroy']);
-        });
+        Route::resource('locations', LocationController::class);
         
         // ============================================
         // MAINTENANCE
@@ -202,6 +182,9 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('settings/preferences', [SettingController::class, 'updatePreferences'])->name('settings.preferences');
             Route::get('settings/logo/remove', [SettingController::class, 'removeLogo'])->name('settings.logo.remove');
             Route::get('settings/favicon/remove', [SettingController::class, 'removeFavicon'])->name('settings.favicon.remove');
+            Route::get('settings/vcard-qr', [SettingController::class, 'vcardQr'])->name('settings.vcard-qr');
+            Route::get('settings/business-card', [SettingController::class, 'businessCard'])->name('settings.business-card');
+            Route::get('settings/business-card/download', [SettingController::class, 'downloadBusinessCard'])->name('settings.business-card.download');
         });
         
         // ============================================
@@ -220,12 +203,28 @@ Route::middleware(['auth'])->group(function () {
         // Reports
         Route::middleware('permission:view reports')->group(function () {
             Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
-        });
-        Route::middleware('permission:view reports')->group(function () {
-            Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
             Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
             Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
         });
+
+        // MeCard
+        Route::middleware('permission:view reports')->group(function () {
+            Route::resource('mecards', MecardController::class);
+            Route::get('mecards/{mecard}/download-qr', [MecardController::class, 'downloadQr'])->name('mecards.download-qr');
+            Route::get('mecards/{mecard}/download-mecard', [MecardController::class, 'downloadMecard'])->name('mecards.download-mecard');
+            Route::get('mecards/{mecard}/download-pdf', [MecardController::class, 'downloadPdf'])->name('mecards.download-pdf');
+            Route::get('mecards/{mecard}/print', [MecardController::class, 'printCard'])->name('mecards.print');
+            Route::get('mecards/{mecard}/preview', [MecardController::class, 'previewCard'])->name('mecards.preview');
+        });
+
+        // Cctv
+        Route::get('cctvs/import', [CctvController::class, 'showImportForm'])->name('cctvs.import');
+        Route::post('cctvs/import', [CctvController::class, 'import'])->name('cctvs.import.store');
+        Route::get('cctvs/import/template', [CctvController::class, 'downloadTemplate'])->name('cctvs.import.template');
+        Route::resource('cctvs', CctvController::class);
+        Route::post('cctvs/ping-all', [CctvController::class, 'pingAll'])->name('cctvs.ping-all');
+        Route::get('cctvs/{cctv}/ping', [CctvController::class, 'ping'])->name('cctvs.ping');
+        Route::get('cctvs/{cctv}/snapshot', [CctvController::class, 'snapshot'])->name('cctvs.snapshot');
     });
 });
 

@@ -198,6 +198,22 @@
                                     <input type="text" name="currency_symbol" class="form-control" 
                                            value="{{ $settings['currency_symbol'] }}" required>
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Zona Waktu</label>
+                                    <select name="timezone" class="form-select">
+                                        @foreach([
+                                            'Asia/Jakarta' => 'WIB - Jakarta (GMT+7)',
+                                            'Asia/Makassar' => 'WITA - Makassar (GMT+8)',
+                                            'Asia/Jayapura' => 'WIT - Jayapura (GMT+9)',
+                                            'Asia/Singapore' => 'Singapore (GMT+8)',
+                                            'Asia/Kuala_Lumpur' => 'Kuala Lumpur (GMT+8)',
+                                        ] as $tz => $label)
+                                            <option value="{{ $tz }}" {{ ($settings['timezone'] ?? 'Asia/Jakarta') == $tz ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                             
                             <button type="submit" class="btn btn-primary">
@@ -206,6 +222,34 @@
                         </form>
                     </div>
                 </div>
+            </div>
+
+            <!-- VCard QR Code -->
+            <div class="card mt-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-qr-code me-1"></i>QR Code Kontak (VCard)</h6>
+                </div>
+                <div class="card-body text-center">
+                    <p class="text-muted small mb-3">
+                        Scan QR ini dengan kamera HP untuk langsung menyimpan kontak perusahaan.<br>
+                        Data diambil dari pengaturan perusahaan di atas.
+                    </p>
+                    
+                    <div class="bg-light d-inline-block p-3 rounded-3 mb-3">
+                        <img src="{{ route('admin.settings.vcard-qr') }}" alt="VCard QR" style="width: 180px; height: 180px;">
+                    </div>
+                    
+                    <div>
+                        <a href="{{ route('admin.settings.vcard-qr') }}" class="btn btn-primary btn-sm" download="vcard-qr.svg">
+                            <i class="bi bi-download me-1"></i>Download QR Code
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 mt-3">
+                <a href="{{ route('admin.settings.business-card') }}" target="_blank" class="btn btn-outline-primary">
+                    <i class="bi bi-credit-card me-1"></i>Lihat Kartu Nama Digital
+                </a>
             </div>
         </div>
     </div>

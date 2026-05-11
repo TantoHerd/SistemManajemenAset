@@ -17,20 +17,32 @@
     <h1>{{ $companyName }}</h1>
     <h3>Laporan Aset IT | Periode: {{ $dateFrom }} s/d {{ $dateTo }}</h3>
     
-    <div class="summary">
+    {{-- <div class="summary">
         <p><strong>Total Nilai Aset:</strong> Rp {{ number_format($totalValue, 0, ',', '.') }}</p>
         <p><strong>Total Pembelian:</strong> Rp {{ number_format($totalPurchaseValue, 0, ',', '.') }}</p>
         <p><strong>Biaya Maintenance:</strong> Rp {{ number_format($totalMaintenanceCost, 0, ',', '.') }}</p>
-    </div>
+    </div> --}}
     
     <h4>Data Aset ({{ $assets->count() }})</h4>
     <table>
-        <tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Lokasi</th><th>Status</th><th>Nilai</th></tr>
-        @foreach($assets->take(50) as $a)
         <tr>
-            <td>{{ $a->asset_code }}</td><td>{{ $a->name }}</td>
-            <td>{{ $a->category->name ?? '-' }}</td><td>{{ $a->location->name ?? '-' }}</td>
-            <td>{{ $a->status_label }}</td><td>{{ number_format($a->current_value, 0, ',', '.') }}</td>
+            <th style="width: 30px;">No</th>
+            <th>Kode</th>
+            <th>Nama</th>
+            <th>Kategori</th>
+            <th>Lokasi</th>
+            <th>Status</th>
+            <th>Nilai</th>
+        </tr>
+        @foreach($assets as $i => $a)
+        <tr>
+            <td style="text-align: center;">{{ $i + 1 }}</td>
+            <td>{{ $a->asset_code }}</td>
+            <td>{{ $a->name }}</td>
+            <td>{{ $a->category->name ?? '-' }}</td>
+            <td>{{ $a->location->name ?? '-' }}</td>
+            <td>{{ $a->status_label }}</td>
+            <td>{{ number_format($a->current_value, 0, ',', '.') }}</td>
         </tr>
         @endforeach
     </table>

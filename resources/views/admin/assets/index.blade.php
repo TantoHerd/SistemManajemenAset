@@ -12,7 +12,7 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scanModal">
             <i class="bi bi-upc-scan"></i> Scan QR Code
         </button>
-        <a href="{{ request()->routeIs('admin.assets.create') }}" class="btn btn-success">
+        <a href="{{ route('admin.assets.create') }}" class="btn btn-success">
             <i class="bi bi-plus-lg"></i> Tambah Aset
         </a>
         <a href="{{ route('admin.assets.import') }}" class="btn btn-warning">
@@ -121,13 +121,11 @@
                     </div>
                 </div>
 
-                {{-- <div class="row mt-3">
-                    <div class="col-12">
-                        <a href="{{ url('/admin/assets?reset=1') }}" class="btn btn-secondary" onclick="localStorage.clear(); sessionStorage.clear();">
-                            <i class="bi bi-arrow-repeat"></i> Reset Filter
-                        </a>
-                    </div>
-                </div> --}}
+                <div class="col-md-2 col-sm-6 d-flex align-items-end">
+                    <a href="{{ route('admin.assets.reset-filter') }}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
+                    </a>
+                </div>
             </div>
         </form>
     </div>
@@ -143,13 +141,22 @@
                         <th width="40" class="text-center">
                             <input type="checkbox" id="selectAll" class="form-check-input">
                         </th>
-                        <th>Kode Aset</th>
-                        <th>Nama Aset</th>
-                        <th>Kategori</th>
-                        <th>Lokasi</th>
+                        <th>
+                            <x-sortable-header column="asset_code" label="Kode Aset" :current="$sort ?? null" :direction="$direction ?? null" />
+                        </th>
+                        <th>
+                            <x-sortable-header column="name" label="Nama Aset" :current="$sort ?? null" :direction="$direction ?? null" />
+                        </th>
+                         <th>
+                            <x-sortable-header column="category_name" label="Kategori" :current="$sort ?? null" :direction="$direction ?? null" />
+                        </th>
+                        <th>
+                            <x-sortable-header column="location_name" label="Lokasi" :current="$sort ?? null" :direction="$direction ?? null" />
+                        </th>
                         <th>Assign</th>
-                        <th>Status</th>
-                        {{-- <th class="text-end">Nilai</th> --}}
+                        <th>
+                            <x-sortable-header column="status" label="Status" :current="$sort ?? null" :direction="$direction ?? null" />
+                        </th>
                         <th width="100" class="text-center">Aksi</th>
                     </tr>
                 </thead>
@@ -246,13 +253,9 @@
                                         </button>
                                     </li>
                                     <li>
-                                        <form action="{{ route('admin.assets.destroy', $asset) }}" method="POST" class="d-inline delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Yakin ingin menghapus aset ini?')">
-                                                <i class="bi bi-trash"></i> Hapus
-                                            </button>
-                                        </form>
+                                        <button onclick="confirmDelete('{{ route('admin.assets.destroy', $asset) }}', 'Aset {{ $asset->name }} akan dihapus!')" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash"></i> Hapus
+                                        </button>
                                     </li>
                                 </ul>
                             </div>

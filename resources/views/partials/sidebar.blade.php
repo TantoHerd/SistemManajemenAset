@@ -106,6 +106,22 @@
         </li>
         @endcan
 
+        <!-- Cctv --!>
+        <li class="nav-item">
+            <a class="nav-link {{ request()->routeIs('admin.cctvs.*') ? 'active' : '' }}" href="{{ route('admin.cctvs.index') }}">
+                <i class="bi bi-camera-video"></i> CCTV
+            </a>
+        </li>
+
+        <!-- MeCard --!>
+        @can('view reports')
+        <li class="nav-item">
+            <a class="nav-link {{ request()->routeIs('admin.mecards.*') ? 'active' : '' }}" href="{{ route('admin.mecards.index') }}">
+                <i class="bi bi-person-vcard"></i> MeCard Generate
+            </a>
+        </li>
+        @endcan
+
         <!-- Report-->
         @can('view reports')
         <li class="nav-item">

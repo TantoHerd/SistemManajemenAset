@@ -158,14 +158,9 @@
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-inline delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="dropdown-item text-danger" 
-                                                    onclick="return confirm('Yakin ingin menghapus user ini?')">
-                                                <i class="bi bi-trash"></i> Hapus
-                                            </button>
-                                        </form>
+                                        <button onclick="confirmDelete('{{ route('admin.users.destroy', $user) }}', 'User {{ $user->name }} akan dihapus!')" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash"></i> Hapus
+                                        </button>
                                     </li>
                                     @endif
                                 </ul>

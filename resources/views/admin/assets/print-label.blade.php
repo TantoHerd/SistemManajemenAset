@@ -5,286 +5,171 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Label - {{ $asset->asset_code }}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* Ukuran untuk label 73mm x 43mm */
         @page {
-            size: 73mm 43mm;
+            size: 75mm 45mm;
             margin: 0;
         }
         
         body {
-            font-family: 'Segoe UI', 'Inter', 'Poppins', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             background: white;
+            width: 75mm;
+            height: 45mm;
             margin: 0;
             padding: 0;
-            width: 73mm;
-            height: 43mm;
         }
         
         .label {
-            width: 73mm;
-            height: 43mm;
-            background: white;
-            border-radius: 3px;
-            overflow: hidden;
+            width: 75mm;
+            height: 45mm;
             display: flex;
             flex-direction: column;
+            border: 1px solid #000;
+            background: white;
         }
         
-        /* Header - lebih kecil */
+        /* HEADER */
         .label-header {
-            background: linear-gradient(135deg, #4361ee 0%, #3b2a9f 100%);
-            color: white;
-            padding: 2px 4px;
+            background: #000;
+            color: #fff;
             text-align: center;
+            padding: 1.5mm 3mm;
+            font-size: 9pt;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
         
-        .label-header h4 {
-            font-size: 8pt;
-            margin: 0;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-        
-        .label-header small {
-            font-size: 7pt;
-            opacity: 0.9;
-        }
-        
-        /* Body - lebih kecil */
+        /* BODY */
         .label-body {
             flex: 1;
-            padding: 3px 4px;
-        }
-        
-        .label-content {
             display: flex;
             align-items: center;
-            gap: 4px;
-            height: 100%;
+            padding: 2mm 3mm;
+            gap: 2mm;
         }
         
-        /* QR Code Section - lebih kecil */
-        .barcode-section {
-            flex-shrink: 0;
-            text-align: center;
-            background: #fafafa;
-            padding: 2px;
-            border-radius: 4px;
-            border: 0.5px solid #e0e0e0;
-            width: 24mm;
-        }
-        
-        .barcode-code {
-            font-size: 4.5pt;
-            font-family: monospace;
-            margin-top: 1px;
-            color: #555;
-            text-align: center;
-        }
-        
-        /* Info Section - lebih kecil */
-        .info-section {
+        .label-body .details {
             flex: 1;
         }
         
-        .asset-name {
+        .label-body .details .name {
             font-size: 8pt;
-            font-weight: 700;
-            color: #1a1a2e;
-            margin-bottom: 2px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 1.5mm;
+            text-transform: uppercase;
             line-height: 1.2;
         }
         
-        .detail-item {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            font-size: 6pt;
-            color: #555;
-            margin-bottom: 1px;
+        .label-body .details .info {
+            font-size: 7pt;
+            color: #000;
+            margin-bottom: 0.5mm;
+            line-height: 1.3;
         }
         
-        .detail-item span:first-child {
-            min-width: 14px;
-            font-size: 4.5pt;
+        .label-body .details .info b {
+            font-weight: bold;
         }
         
-        /* Status Badge */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-            padding: 1px 3px;
-            border-radius: 6px;
-            font-size: 6pt;
-            font-weight: 600;
-            margin-top: 1px;
+        .label-body .details .status {
+            display: inline-block;
+            font-size: 7pt;
+            font-weight: bold;
+            color: #000;
+            border: 1px solid #000;
+            padding: 0.5mm 2mm;
+            margin-top: 1mm;
+            text-transform: uppercase;
         }
         
-        .status-available { background: #d4edda; color: #155724; }
-        .status-in_use { background: #cce5ff; color: #004085; }
-        .status-maintenance { background: #fff3cd; color: #856404; }
-        .status-damaged { background: #f8d7da; color: #721c24; }
+        .label-body .qr {
+            width: 16mm;
+            height: 16mm;
+            flex-shrink: 0;
+        }
         
-        /* Footer */
+        /* FOOTER */
         .label-footer {
-            background: #f8f9fc;
-            padding: 2px 3px;
+            background: #000;
+            color: #fff;
             text-align: center;
-            border-top: 0.5px dashed #dee2e6;
+            padding: 1.5mm 3mm;
+            font-size: 7pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
-        .company-name {
-            font-size: 6pt;
-            color: #6c757d;
-        }
-        
-        .print-actions {
-            display: none;
-        }
-        
-        @media print {
-            body {
-                margin: 0 !important;
-                padding: 0 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .label {
-                box-shadow: none;
-                border: 0.2px solid #ddd;
-            }
-            .print-actions {
-                display: none;
-            }
-        }
-        
+        /* Screen */
         @media screen {
             body {
-                background: #f0f2f5;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 min-height: 100vh;
+                background: #e8ecf1;
                 width: auto;
                 height: auto;
                 padding: 20px;
             }
-            .label {
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-                margin-bottom: 20px;
-            }
-            .print-actions {
-                display: block;
-                text-align: center;
-                margin-top: 20px;
-            }
-            .btn {
-                padding: 8px 16px;
-                margin: 0 5px;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-size: 12px;
-            }
-            .btn-primary {
-                background: #4361ee;
-                color: white;
-            }
-            .btn-secondary {
-                background: #6c757d;
-                color: white;
-            }
-            .btn-success {
-                background: #28a745;
-                color: white;
-            }
+            .label { box-shadow: 0 4px 15px rgba(0,0,0,0.15); margin-bottom: 20px; }
+            .actions { display: flex; gap: 10px; }
+            .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+            .btn-print { background: #000; color: #fff; }
+            .btn-close { background: #ccc; color: #000; }
+        }
+        
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .actions { display: none !important; }
         }
     </style>
 </head>
 <body>
+
     @if(isset($asset) && $asset)
     <div class="label">
+        <!-- HEADER: Kode Aset -->
         <div class="label-header">
-            <h4>🏢 ASSET IDENTIFICATION</h4>
-            <small>Property of IT Asset Management</small>
+            {{ $asset->asset_code }}
         </div>
         
+        <!-- BODY: Detail + QR -->
         <div class="label-body">
-            <div class="label-content">
-                <div class="barcode-section">
-                    @php
-                        $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(70)->margin(0)->generate($asset->asset_code);
-                    @endphp
-                    <div style="display: flex; justify-content: center; align-items: center;">
-                        <div style="width: 70px; height: 70px;">
-                            {!! $qrCode !!}
-                        </div>
-                    </div>
-                    {{-- <div class="barcode-code">{{ $asset->asset_code }}</div> --}}
-                </div>
-                
-                <div class="info-section">
-                            <div class="asset-name">{{ $asset->name }}</div>
-                            <div class="asset-details">
-                                <div class="detail-item">
-                                    <span>📍</span>
-                                    <span><strong>Lokasi:</strong> {{ $asset->location->name ?? '-' }}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span>👤</span>
-                                    <span><strong>Assign:</strong> {{ $asset->assignedTo->name ?? '-' }}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span>📅</span>
-                                    <span><strong>Tahun Pengadaan:</strong> {{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</span>
-                                </div>
-                                @if($asset->brand || $asset->model)
-                                <div class="detail-item">
-                                    <span>🏷️</span>
-                                    <span><strong>Model:</strong> {{ $asset->brand }} {{ $asset->model }}</span>
-                                </div>
-                                @endif
-                            </div>
-                            <div class="status-badge status-{{ $asset->status }}">
-                                <span>●</span> {{ $asset->status_label }}
-                            </div>
-                        </div>
+            <div class="details">
+                <div class="name">{{ $asset->name }}</div>
+                <div class="info"><b>Lokasi:</b> {{ $asset->location->name ?? '-' }}</div>
+                <div class="info"><b>User:</b> {{ $asset->assignedTo->name ?? '-' }}</div>
+                <div class="info"><b>Tahun:</b> {{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</div>
+                <div class="info"><b>Model:</b> {{ $asset->brand }} {{ $asset->model }}</div>
+                <div class="status">{{ $asset->status_label }}</div>
             </div>
+            
+            @php
+                $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+                    ->size(55)->margin(0)->generate($asset->asset_code);
+            @endphp
+            <div class="qr">{!! $qrCode !!}</div>
         </div>
         
+        <!-- FOOTER: Nama Perusahaan -->
         <div class="label-footer">
-            <div class="company-name">
-                @php
-                    try {
-                        $company = \App\Models\Setting::where('key', 'company_name')->first();
-                        $companyName = $company ? $company->value : 'PT. NAMA PERUSAHAAN';
-                    } catch (\Exception $e) {
-                        $companyName = 'PT. NAMA PERUSAHAAN';
-                    }
-                @endphp
-                {{ $companyName }} | Asset IT
-            </div>
+            {{ \App\Models\Setting::where('key', 'company_name')->value('value') ?? 'PT. NAMA PERUSAHAAN' }}
         </div>
     </div>
     
-    <div class="print-actions">
-        <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak</button>
-        <button class="btn btn-secondary" onclick="window.close()">✖️ Tutup</button>
-        <button class="btn btn-success" onclick="window.location.href='{{ route('admin.assets.index') }}'">↩️ Kembali</button>
-    </div>
-    @else
-    <div style="text-align: center; padding: 20px;">
-        <h3>⚠️ Data Aset Tidak Ditemukan</h3>
-        <button onclick="window.close()">Tutup</button>
+    <div class="actions">
+        <button class="btn btn-print" onclick="window.print()">🖨️ Cetak</button>
+        <button class="btn btn-close" onclick="window.close()">✖️ Tutup</button>
     </div>
     @endif
+
+    <script>
+        window.onload = function() { setTimeout(() => window.print(), 300); };
+    </script>
 </body>
 </html>

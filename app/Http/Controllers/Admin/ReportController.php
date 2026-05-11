@@ -144,6 +144,9 @@ class ReportController extends Controller
     {
         $data = $this->getReportData($request);
         
+        // Tambah nomor urut
+        $data['no'] = 1;
+        
         $pdf = Pdf::loadView('admin.reports.pdf', $data);
         $pdf->setPaper('A4', 'landscape');
         
