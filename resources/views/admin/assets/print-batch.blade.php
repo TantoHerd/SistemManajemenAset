@@ -6,89 +6,82 @@
     <title>Cetak Label Batch - {{ $assets->count() ?? 0 }} Aset</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        @page { size: 75mm 45mm; margin: 0; }
-        
+
+        @page {
+            size: 75mm 45mm;
+            margin: 0;
+        }
+
         body {
             font-family: Arial, Helvetica, sans-serif;
             background: white;
             margin: 0;
             padding: 0;
         }
-        
+
         .label {
             width: 75mm;
             height: 45mm;
+            border: 1px solid #ccc;
+            background: white;
             display: flex;
             flex-direction: column;
-            border: 1px solid #000;
+            padding: 2mm;
             page-break-after: always;
         }
         .label:last-child { page-break-after: auto; }
-        
+
         .label-header {
-            background: #000;
-            color: #fff;
             text-align: center;
-            padding: 1.5mm 3mm;
-            font-size: 9pt;
+            font-size: 10pt;
             font-weight: bold;
-            letter-spacing: 1px;
+            color: #333;
+            padding-bottom: 1mm;
+            border-bottom: 1px dashed #000000;
+            margin-bottom: 2mm;
         }
-        
+
         .label-body {
             flex: 1;
             display: flex;
             align-items: center;
-            padding: 2mm 3mm;
             gap: 2mm;
         }
-        .label-body .details { flex: 1; }
+
+        .label-body .details {
+            flex: 1;
+            font-size: 9pt;
+            color: #000000;
+            line-height: 1.3;
+        }
+
         .label-body .details .name {
-            font-size: 8pt;
+            font-size: 12pt;
             font-weight: bold;
-            color: #000;
-            margin-bottom: 1.5mm;
-            text-transform: uppercase;
-            line-height: 1.2;
-        }
-        .label-body .details .info {
-            font-size: 7pt;
-            color: #000;
-            margin-bottom: 0.5mm;
-        }
-        .label-body .details .status {
-            display: inline-block;
-            font-size: 7pt;
-            font-weight: bold;
-            color: #000;
-            border: 1px solid #000;
-            padding: 0.5mm 2mm;
-            margin-top: 1mm;
+            margin-bottom: 1mm;
             text-transform: uppercase;
         }
+
         .label-body .qr {
             width: 16mm;
             height: 16mm;
             flex-shrink: 0;
         }
-        
+
         .label-footer {
-            background: #000;
-            color: #fff;
-            text-align: center;
-            padding: 1.5mm 3mm;
+            text-align: right;
             font-size: 7pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #000000;
+            margin-top: auto;
+            padding-top: 1mm;
+            border-top: 1px dashed #000000;
         }
-        
+
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
         }
-        
+
         @media screen {
             body { background: #e8ecf1; }
             .no-print {
@@ -125,11 +118,10 @@
             <div class="label-body">
                 <div class="details">
                     <div class="name">{{ $asset->name }}</div>
-                    <div class="info"><b>Lokasi:</b> {{ $asset->location->name ?? '-' }}</div>
-                    <div class="info"><b>User:</b> {{ $asset->assignedTo->name ?? '-' }}</div>
-                    <div class="info"><b>Tahun:</b> {{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</div>
-                    <div class="info"><b>Model:</b> {{ $asset->brand }} {{ $asset->model }}</div>
-                    <div class="status">{{ strtoupper($asset->status_label) }}</div>
+                    <div>Lokasi: {{ $asset->location->name ?? '-' }}</div>
+                    <div>User: {{ $asset->assignedTo->name ?? '-' }}</div>
+                    <div>Tahun: {{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</div>
+                    <div style="margin-top:1mm; font-weight:bold;">{{ strtoupper($asset->status_label) }}</div>
                 </div>
                 @php
                     $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
@@ -140,7 +132,7 @@
             <div class="label-footer">{{ $companyName }}</div>
         </div>
         @empty
-        <div style="text-align: center; padding: 40px; background: white;">Tidak ada aset</div>
+        <div style="text-align:center; padding:40px; background:white;">Tidak ada aset</div>
         @endforelse
     </div>
 

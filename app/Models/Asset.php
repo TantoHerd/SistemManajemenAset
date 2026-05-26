@@ -417,6 +417,11 @@ class Asset extends Model
         return $this->hasMany(AssetDocument::class);
     }
 
+    public function cctvs()
+    {
+        return $this->hasMany(Cctv::class);
+    }
+
     /**
      * Boot the model.
      */

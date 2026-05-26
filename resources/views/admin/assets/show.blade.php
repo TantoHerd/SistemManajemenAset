@@ -257,9 +257,9 @@
         </h6>
         <div class="d-flex gap-2">
             @if($asset->documents->count() > 0)
-            <button class="btn btn-outline-success btn-sm" onclick="downloadAll('{{ route('admin.assets.documents.download-folder', $asset) }}')">
+            <a href="{{ route('admin.assets.documents.download-folder', $asset) }}" class="btn btn-outline-success btn-sm">
                 <i class="bi bi-download me-1"></i>Download Semua
-            </button>
+            </a>
             @endif
             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadDocModal">
                 <i class="bi bi-plus-circle me-1"></i>Upload
@@ -267,14 +267,11 @@
         </div>
     </div>
     <div class="card-body p-0">
-        @php
-            $groupedDocs = $asset->documents->groupBy('folder_path');
-        @endphp
+        @php $groupedDocs = $asset->documents->groupBy('folder_path'); @endphp
         
         @if($groupedDocs->count() > 0)
             @foreach($groupedDocs as $folderPath => $docs)
             <div class="border-bottom">
-                <!-- Folder Header -->
                 <div class="bg-light px-3 py-2 d-flex justify-content-between align-items-center">
                     <div>
                         <i class="bi bi-folder-fill text-warning me-1"></i>
@@ -282,17 +279,15 @@
                         <span class="badge bg-secondary ms-2">{{ $docs->count() }} file</span>
                     </div>
                     <a href="{{ route('admin.assets.documents.download-folder', ['asset' => $asset, 'folder_path' => $folderPath]) }}" 
-                       class="btn btn-sm btn-outline-success" title="Download folder">
+                       class="btn btn-sm btn-outline-success">
                         <i class="bi bi-download"></i>
                     </a>
                 </div>
                 
-                <!-- File List -->
-                <div class="list-group list-group-flush">
+                <div class="list-group list-group-flush" id="folder-{{ Str::slug($folderPath) }}">
                     @foreach($docs as $doc)
-                    <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-2" id="doc-{{ $doc->id }}">
                         <div class="d-flex gap-2 align-items-center">
-                            <!-- Preview Gambar -->
                             @if($doc->isImage())
                                 <img src="{{ $doc->file_url }}" class="rounded" style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;" 
                                      onclick="previewImage('{{ $doc->file_url }}', '{{ $doc->name }}')">
@@ -304,19 +299,15 @@
                             <div>
                                 <div class="fw-semibold small">{{ $doc->name }}</div>
                                 <small class="text-muted">
-                                    {{ $doc->file_size_formatted }} • 
-                                    <span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($doc->file_type) }}</span>
-                                    • {{ $doc->created_at->diffForHumans() }}
+                                    {{ $doc->file_size_formatted }} • {{ $doc->created_at->diffForHumans() }}
                                 </small>
                             </div>
                         </div>
                         <div class="d-flex gap-1">
-                            <a href="{{ route('admin.documents.download', $doc) }}" class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" title="Download">
+                            <a href="{{ route('admin.documents.download', $doc) }}" class="btn btn-sm btn-outline-success" title="Download">
                                 <i class="bi bi-download"></i>
                             </a>
-                            <button class="btn btn-sm btn-outline-danger" 
-                                    onclick="confirmDelete('{{ route('admin.documents.destroy', $doc) }}', 'Hapus {{ $doc->name }}?')" 
-                                    data-bs-toggle="tooltip" title="Hapus">
+                            <button onclick="deleteDoc({{ $doc->id }})" class="btn btn-sm btn-outline-danger" title="Hapus">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -331,6 +322,86 @@
             <p class="mb-0">Belum ada dokumen pendukung</p>
         </div>
         @endif
+    </div>
+    
+    <!-- Progress Upload -->
+    <div id="uploadProgress" class="px-3 pb-2" style="display:none;">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="spinner-border spinner-border-sm text-primary"></span>
+            <span id="uploadStatus">Mengupload...</span>
+        </div>
+        <div class="progress" style="height: 4px;">
+            <div id="uploadBar" class="progress-bar bg-primary" style="width: 0%;"></div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL UPLOAD --}}
+<div class="modal fade" id="uploadDocModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cloud-upload me-1"></i>Upload Dokumen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Dropzone Area -->
+                <div id="dropZone" style="border: 2px dashed #ccc; border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s;">
+                    <i class="bi bi-cloud-upload fs-1 text-primary d-block mb-2"></i>
+                    <h6>Drag & Drop file disini</h6>
+                    <p class="text-muted small mb-2">atau klik untuk memilih file</p>
+                    <p class="text-muted small mb-0">Max: 10MB per file | Multi file</p>
+                </div>
+                
+                <form id="uploadForm" style="display:none;">
+                    <input type="file" name="files[]" id="fileInput" class="d-none" multiple accept="*">
+                    
+                    <div class="mb-2 mt-3">
+                        <label class="form-label small">File dipilih:</label>
+                        <div id="fileList" class="small text-muted"></div>
+                    </div>
+                    
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small">Tipe</label>
+                            <select name="file_type" id="fileType" class="form-select form-select-sm">
+                                <option value="">Auto</option>
+                                <option value="invoice">Invoice</option>
+                                <option value="photo">Foto</option>
+                                <option value="manual">Manual</option>
+                                <option value="other">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Folder</label>
+                            <input type="text" name="folder_path" id="folderPath" class="form-control form-control-sm" 
+                                   placeholder="Auto: {{ strtoupper(str_replace(' ', '-', $asset->category->name ?? 'Uncategorized')) }}">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary btn-sm" id="uploadBtn" onclick="startUpload()">
+                    <i class="bi bi-upload me-1"></i>Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL PREVIEW --}}
+<div class="modal fade" id="previewImageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="previewTitle"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="previewImage" src="" alt="Preview" class="img-fluid rounded">
+            </div>
+        </div>
     </div>
 </div>
 
@@ -589,6 +660,123 @@ function previewImage(url, title) {
 // Download Semua
 function downloadAll(url) {
     window.location.href = url;
+}
+
+// Drag & Drop + Multi Upload
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const uploadForm = document.getElementById('uploadForm');
+
+// Klik dropzone
+dropZone?.addEventListener('click', () => fileInput.click());
+
+// Drag events
+dropZone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#4361ee';
+    dropZone.style.background = '#f0f4ff';
+});
+
+dropZone?.addEventListener('dragleave', () => {
+    dropZone.style.borderColor = '#ccc';
+    dropZone.style.background = 'transparent';
+});
+
+dropZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#ccc';
+    dropZone.style.background = 'transparent';
+    handleFiles(e.dataTransfer.files);
+});
+
+fileInput?.addEventListener('change', () => handleFiles(fileInput.files));
+
+function handleFiles(files) {
+    uploadForm.style.display = 'block';
+    let html = '';
+    for (let f of files) {
+        html += `<div>📄 ${f.name} (${formatSize(f.size)})</div>`;
+    }
+    fileList.innerHTML = html;
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function startUpload() {
+    const files = fileInput.files;
+    if (files.length === 0) return;
+    
+    const formData = new FormData();
+    for (let f of files) formData.append('files[]', f);
+    formData.append('_token', '{{ csrf_token() }}');
+    formData.append('file_type', document.getElementById('fileType').value);
+    formData.append('folder_path', document.getElementById('folderPath').value);
+    
+    document.getElementById('uploadProgress').style.display = 'block';
+    document.getElementById('uploadStatus').textContent = 'Mengupload ' + files.length + ' file...';
+    
+    fetch('{{ route("admin.assets.documents.store", $asset) }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest', // ← TAMBAH INI
+        }
+    })
+    .then(async r => {
+        const text = await r.text();
+        console.log('Response:', text); // Debug
+        try {
+            return JSON.parse(text);
+        } catch {
+            // Bukan JSON - reload saja
+            location.reload();
+        }
+    })
+    .then(data => {
+        if (data && data.success) {
+            document.getElementById('uploadStatus').textContent = '✅ Berhasil! ' + data.documents.length + ' file';
+            setTimeout(() => location.reload(), 500);
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        document.getElementById('uploadStatus').textContent = '❌ Gagal upload';
+    });
+}
+
+function deleteDoc(id) {
+    Swal.fire({
+        title: 'Hapus dokumen?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Ya, Hapus!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/documents/' + id, {
+                method: 'DELETE',
+                headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('doc-' + id)?.remove();
+                    toastr.success('Dokumen dihapus');
+                }
+            });
+        }
+    });
+}
+
+function previewImage(url, title) {
+    document.getElementById('previewImage').src = url;
+    document.getElementById('previewTitle').textContent = title;
+    new bootstrap.Modal(document.getElementById('previewImageModal')).show();
 }
 </script>
 @endpush

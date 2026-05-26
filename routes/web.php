@@ -56,6 +56,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('assets/scan', [AssetController::class, 'getAssetByBarcode'])->name('assets.scan');
         Route::get('assets/reset-filter', [AssetController::class, 'resetFilter'])->name('assets.reset-filter');
         Route::get('assets/specifications/by-category', [AssetController::class, 'getSpecificationsByCategory'])->name('assets.specifications.by-category');
+        
+        // Bulk actions
+        Route::post('assets/bulk-delete', [AssetController::class, 'bulkDelete'])->name('assets.bulk-delete');
+        Route::post('assets/bulk-status', [AssetController::class, 'bulkStatus'])->name('assets.bulk-status');
+        Route::post('assets/bulk-category', [AssetController::class, 'bulkCategory'])->name('assets.bulk-category');
+        Route::post('assets/bulk-location', [AssetController::class, 'bulkLocation'])->name('assets.bulk-location');
 
         // Route dengan parameter {asset}
         Route::get('assets', [AssetController::class, 'index'])->name('assets.index');
@@ -108,6 +114,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('maintenances/schedule', [MaintenanceController::class, 'schedule'])->name('maintenances.schedule');
             Route::get('maintenances/history', [MaintenanceController::class, 'history'])->name('maintenances.history');
             Route::get('maintenances/report', [MaintenanceController::class, 'report'])->name('maintenances.report');
+            Route::get('maintenances/calendar', [MaintenanceController::class, 'calendar'])->name('maintenances.calendar');
         });
 
         Route::middleware('permission:create maintenances')->group(function () {

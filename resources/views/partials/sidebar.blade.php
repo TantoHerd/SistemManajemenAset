@@ -60,6 +60,7 @@
                 <li><a class="nav-link {{ request()->routeIs('admin.maintenances.create') ? 'active' : '' }}" href="{{ route('admin.maintenances.create') }}"><i class="bi bi-plus-circle"></i> Tambah</a></li>
                 @endcan
                 <li><a class="nav-link {{ request()->routeIs('admin.maintenances.schedule') ? 'active' : '' }}" href="{{ route('admin.maintenances.schedule') }}"><i class="bi bi-calendar"></i> Jadwal</a></li>
+                <li><a class="nav-link {{ request()->routeIs('admin.maintenances.calendar') ? 'active' : '' }}" href="{{ route('admin.maintenances.calendar') }}"><i class="bi bi-calendar3"></i> Kalender</a></li>
                 <li><a class="nav-link {{ request()->routeIs('admin.maintenances.history') ? 'active' : '' }}" href="{{ route('admin.maintenances.history') }}"><i class="bi bi-clock-history"></i> Riwayat</a></li>
                 <li><a class="nav-link {{ request()->routeIs('admin.maintenances.report') ? 'active' : '' }}" href="{{ route('admin.maintenances.report') }}"><i class="bi bi-file-text"></i> Laporan</a></li>
             </ul>

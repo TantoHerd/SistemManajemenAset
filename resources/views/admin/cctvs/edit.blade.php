@@ -29,6 +29,17 @@
                             <input type="number" name="port" class="form-control" value="{{ old('port', $cctv->port) }}" required>
                         </div>
                         <div class="col-sm-4">
+                            <label class="form-label">Terkait Aset</label>
+                            <select name="asset_id" class="form-select">
+                                <option value="">-- Tidak Terkait --</option>
+                                @foreach(\App\Models\Asset::orderBy('name')->get() as $a)
+                                    <option value="{{ $a->id }}" {{ old('asset_id', $cctv->asset_id) == $a->id ? 'selected' : '' }}>
+                                        {{ $a->asset_code }} - {{ $a->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-sm-4">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select">
                                 <option value="active" {{ $cctv->status === 'active' ? 'selected' : '' }}>Active</option>

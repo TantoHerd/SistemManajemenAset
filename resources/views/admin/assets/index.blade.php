@@ -293,79 +293,51 @@
     </div>
 </div>
 
-<!-- Batch Actions -->
+<!-- Batch Actions - Floating -->
 <div id="batchActions" class="position-fixed bottom-0 end-0 m-3" style="display: none; z-index: 1050;">
-    <div class="card shadow-lg border-0">
-        <div class="card-body py-2 px-3">
-            <div class="d-flex align-items-center gap-3">
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body py-2 px-4">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
                 <span class="fw-semibold">
                     <i class="bi bi-check-circle-fill text-primary"></i>
                     <span id="selectedCount">0</span> aset dipilih
                 </span>
-                <button type="button" class="btn btn-sm btn-primary" id="batchPrintBtn">
-                    <i class="bi bi-printer"></i> Cetak Label
+                
+                <select id="batchStatus" class="form-select form-select-sm" style="width: 130px;" onchange="batchAction('status', this.value)">
+                    <option value="">Ubah Status...</option>
+                    @foreach($statuses as $key => $val)<option value="{{ $key }}">{{ $val }}</option>@endforeach
+                </select>
+                
+                <select id="batchCategory" class="form-select form-select-sm" style="width: 140px;" onchange="batchAction('category', this.value)">
+                    <option value="">Ubah Kategori...</option>
+                    @foreach($categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
+                </select>
+                
+                <select id="batchLocation" class="form-select form-select-sm" style="width: 140px;" onchange="batchAction('location', this.value)">
+                    <option value="">Ubah Lokasi...</option>
+                    @foreach($locations as $loc)<option value="{{ $loc->id }}">{{ $loc->name }}</option>@endforeach
+                </select>
+                
+                <button type="button" class="btn btn-sm btn-primary" onclick="batchPrint()">
+                    <i class="bi bi-printer"></i> Cetak
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary" id="clearSelection">
-                    Batal
+                
+                <button type="button" class="btn btn-sm btn-danger" onclick="confirmBulkDelete()">
+                    <i class="bi bi-trash"></i> Hapus
+                </button>
+                
+                <button type="button" class="btn btn-sm btn-link text-decoration-none" onclick="clearSelection()">
+                    <i class="bi bi-x"></i>
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Scan QR Code Modal -->
-<div class="modal fade" id="scanModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-upc-scan"></i> Scan QR Code Aset
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <div id="qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
-                <div id="qr-reader-results" class="mt-3"></div>
-                <div id="scan-result" class="mt-2"></div>
-                <p class="text-muted mt-2 small">
-                    <i class="bi bi-camera"></i> Arahkan kamera ke QR Code aset
-                </p>
-                <hr>
-                <div class="mt-2">
-                    <label class="form-label small">Atau masukkan kode manual:</label>
-                    <div class="input-group">
-                        <input type="text" id="manual-qrcode" class="form-control" placeholder="Kode Aset">
-                        <button class="btn btn-primary" id="manualCheckBtn">
-                            <i class="bi bi-search"></i> Cek
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+@include('admin.assets._scan-modal')
 
-<!-- Result Modal - Mobile Friendly -->
-<div class="modal fade" id="resultModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content" style="border-radius: 20px; margin: 16px;">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">
-                    <i class="bi bi-info-circle-fill text-primary"></i> Detail Aset
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pt-0" id="resultModalBody" style="max-height: 70vh; overflow-y: auto;">
-                <!-- Content akan diisi JavaScript -->
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-secondary w-100 py-2 rounded-pill" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Tutup
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+@include('admin.assets._result-modal')
+
 @endsection
 
 @push('styles')
@@ -396,280 +368,253 @@
 @push('scripts')
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-$(document).ready(function() {
-    // Select All
-    $('#selectAll').on('change', function() {
-        $('.asset-checkbox').prop('checked', this.checked);
-        updateBatchActions();
-    });
+// ============================================
+// BATCH ACTIONS (Vanilla JS)
+// ============================================
+function updateBatchActions() {
+    const checked = document.querySelectorAll('.asset-checkbox:checked');
+    const count = checked.length;
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('batchActions').style.display = count > 0 ? 'block' : 'none';
+}
+
+document.getElementById('selectAll')?.addEventListener('change', function() {
+    document.querySelectorAll('.asset-checkbox').forEach(cb => cb.checked = this.checked);
+    updateBatchActions();
+});
+
+document.querySelectorAll('.asset-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateBatchActions);
+});
+
+function clearSelection() {
+    document.querySelectorAll('.asset-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('selectAll') && (document.getElementById('selectAll').checked = false);
+    document.getElementById('batchStatus') && (document.getElementById('batchStatus').value = '');
+    document.getElementById('batchCategory') && (document.getElementById('batchCategory').value = '');
+    document.getElementById('batchLocation') && (document.getElementById('batchLocation').value = '');
+    updateBatchActions();
+}
+
+function getSelectedIds() {
+    return Array.from(document.querySelectorAll('.asset-checkbox:checked')).map(c => c.value).join(',');
+}
+
+function batchAction(type, value) {
+    if (!value) return;
+    const count = document.querySelectorAll('.asset-checkbox:checked').length;
     
-    $('.asset-checkbox').on('change', function() {
-        updateBatchActions();
-    });
-    
-    function updateBatchActions() {
-        let count = $('.asset-checkbox:checked').length;
-        $('#selectedCount').text(count);
-        
-        if (count > 0) {
-            $('#batchActions').fadeIn();
-        } else {
-            $('#batchActions').fadeOut();
-        }
-    }
-    
-    // Batch Print
-    $('#batchPrintBtn').on('click', function() {
-        let selectedIds = [];
-        $('.asset-checkbox:checked').each(function() {
-            selectedIds.push($(this).val());
-        });
-        
-        if (selectedIds.length === 0) {
-            alert('Pilih minimal satu aset');
-            return;
-        }
-        
-        let form = $('<form action="{{ route("admin.assets.print-labels") }}" method="POST" target="_blank"></form>');
-        form.append('<input type="hidden" name="_token" value="{{ csrf_token() }}">');
-        
-        selectedIds.forEach(function(id) {
-            form.append('<input type="hidden" name="asset_ids[]" value="' + id + '">');
-        });
-        
-        $('body').append(form);
-        form.submit();
-        form.remove();
-    });
-    
-    $('#clearSelection').on('click', function() {
-        $('.asset-checkbox').prop('checked', false);
-        $('#selectAll').prop('checked', false);
-        updateBatchActions();
-    });
-    
-    // Scanner
-    let html5QrCode = null;
-    
-    // Start scanner when modal opens
-    $('#scanModal').on('shown.bs.modal', function() {
-        startScanner();
-    });
-    
-    // Stop scanner when modal closes
-    $('#scanModal').on('hidden.bs.modal', function() {
-        stopScanner();
-    });
-    
-    function startScanner() {
-        if (html5QrCode) {
-            stopScanner();
-        }
-        
-        html5QrCode = new Html5Qrcode("qr-reader");
-        
-        const config = {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
-        
-        html5QrCode.start(
-            { facingMode: "environment" }, // kamera belakang
-            config,
-            (decodedText, decodedResult) => {
-                // Success callback
-                console.log("QR Code scanned:", decodedText);
-                $('#scan-result').html('<div class="alert alert-success">QR Code terdeteksi: ' + decodedText + '</div>');
-                stopScanner();
-                $('#scanModal').modal('hide');
-                checkQRCode(decodedText);
-            },
-            (errorMessage) => {
-                // Error callback (ignore, just for debugging)
-                // console.log(errorMessage);
-            }
-        ).catch((err) => {
-            console.error("Gagal start scanner:", err);
-            $('#scan-result').html('<div class="alert alert-danger">Gagal mengakses kamera: ' + err + '</div>');
-        });
-    }
-    
-    function stopScanner() {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                html5QrCode = null;
-            }).catch((err) => {
-                console.error("Gagal stop scanner:", err);
-            });
-        }
-    }
-    
-    function checkQRCode(qrCode) {
-        $.ajax({
-            url: '{{ route("admin.assets.scan") }}',
-            method: 'POST',
-            data: { barcode: qrCode },
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(response) {
-                if (response.success) {
-                    showAssetDetail(response.asset);
-                } else {
-                    $('#resultModalBody').html('<div class="alert alert-warning">' + response.message + '</div>');
-                    $('#resultModal').modal('show');
-                }
-            },
-            error: function(xhr) {
-                $('#resultModalBody').html('<div class="alert alert-danger">Terjadi kesalahan: Aset tidak ditemukan</div>');
-                $('#resultModal').modal('show');
-            }
-        });
-    }
-    
-    function showAssetDetail(asset) {
-        let checkBtn = '';
-        if (asset.status === 'available') {
-            checkBtn = '<button class="btn btn-success w-100 py-2 rounded-pill mt-2" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-right"></i> Checkout Aset</button>';
-        } else if (asset.status === 'in_use') {
-            checkBtn = '<button class="btn btn-warning w-100 py-2 rounded-pill mt-2" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-in-left"></i> Checkin Aset</button>';
-        }
-        
-        $('#resultModalBody').html(`
-            <div class="text-center mb-3">
-                <span class="badge bg-${asset.status_badge_class} px-3 py-2 rounded-pill fs-6">${asset.status_label}</span>
-            </div>
-            
-            <div class="card bg-light border-0 rounded-3 mb-2">
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-5 text-muted small">Kode Aset</div>
-                        <div class="col-7 fw-semibold">${asset.asset_code}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card bg-light border-0 rounded-3 mb-2">
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-5 text-muted small">Nama Aset</div>
-                        <div class="col-7 fw-semibold">${asset.name}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card bg-light border-0 rounded-3 mb-2">
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-5 text-muted small">Serial Number</div>
-                        <div class="col-7">${asset.serial_number || '-'}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card bg-light border-0 rounded-3 mb-2">
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-5 text-muted small">Lokasi</div>
-                        <div class="col-7">${asset.location?.full_path || asset.location?.name || '-'}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card bg-light border-0 rounded-3 mb-2">
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-5 text-muted small">Nilai Beli</div>
-                        <div class="col-7">${asset.formatted_purchase_price}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card bg-light border-0 rounded-3 mb-2">
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-5 text-muted small">Nilai Saat Ini</div>
-                        <div class="col-7 fw-bold text-primary">${asset.formatted_current_value}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="d-flex gap-2 mt-3">
-                <a href="/admin/assets/${asset.id}" class="btn btn-info flex-grow-1 py-2 rounded-pill">
-                    <i class="bi bi-eye"></i> Detail
-                </a>
-                ${checkBtn}
-            </div>
-        `);
-        $('#resultModal').modal('show');
-    }
-    
-    $('#manualCheckBtn').on('click', function() {
-        let qrCode = $('#manual-qrcode').val();
-        if (qrCode) {
-            $('#scanModal').modal('hide');
-            checkQRCode(qrCode);
-            $('#manual-qrcode').val('');
-        } else {
-            alert('Masukkan kode aset');
-        }
-    });
-    
-    window.toggleCheckInOut = function(assetId) {
-        $.ajax({
-            url: '/admin/assets/' + assetId + '/toggle-checkinout',
-            method: 'POST',
-            data: { _token: '{{ csrf_token() }}' },
-            success: function(response) {
-                if (response.success) {
-                    $('#resultModal').modal('hide');
-                    location.reload();
-                } else {
-                    alert(response.message);
-                }
-            },
-            error: function() {
-                alert('Terjadi kesalahan');
-            }
-        });
+    // SweetAlert konfirmasi
+    const labels = {
+        'status': 'Ubah Status',
+        'category': 'Ubah Kategori', 
+        'location': 'Ubah Lokasi'
     };
     
-    // Pastikan modal ditutup dengan benar
-    $('#scanModal').on('hidden.bs.modal', function() {
-        stopScanner();
-        $('#scan-result').html('');
-    });
-    
-    $('.checkinout-btn').on('click', function() {
-        let assetId = $(this).data('id');
-        let status = $(this).data('status');
-        
-        if (status === 'available') {
-            if (confirm('Checkout aset ini?')) {
-                toggleCheckInOut(assetId);
-            }
-        } else if (status === 'in_use') {
-            if (confirm('Checkin aset ini?')) {
-                toggleCheckInOut(assetId);
-            }
+    Swal.fire({
+        title: labels[type] + '?',
+        text: 'Yakin ingin mengubah ' + count + ' aset?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4361ee',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Ubah!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const ids = getSelectedIds();
+            let url = '';
+            if (type === 'status') url = '{{ route("admin.assets.bulk-status") }}';
+            else if (type === 'category') url = '{{ route("admin.assets.bulk-category") }}';
+            else if (type === 'location') url = '{{ route("admin.assets.bulk-location") }}';
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="ids" value="' + ids + '">';
+            if (type === 'status') form.innerHTML += '<input type="hidden" name="status" value="' + value + '">';
+            else if (type === 'category') form.innerHTML += '<input type="hidden" name="category_id" value="' + value + '">';
+            else if (type === 'location') form.innerHTML += '<input type="hidden" name="location_id" value="' + value + '">';
+            document.body.appendChild(form);
+            form.submit();
         } else {
-            alert('Aset tidak dapat di-checkin/out');
+            // Reset dropdown kalau batal
+            document.getElementById('batch' + type.charAt(0).toUpperCase() + type.slice(1)).value = '';
         }
     });
-    
-    // Export Excel
-    $('#exportExcelBtn').on('click', function(e) {
-        e.preventDefault();
-        let params = new URLSearchParams(window.location.search);
-        let url = '{{ route("admin.assets.export") }}?' + params.toString();
-        window.location.href = url;
-    });
+}
 
-    $('#resetFilterBtn').on('click', function() {
-        // Hapus session dengan memanggil URL
-        window.location.href = '{{ route("admin.assets.reset-filter") }}';
+function batchPrint() {
+    const ids = Array.from(document.querySelectorAll('.asset-checkbox:checked')).map(c => c.value);
+    if (ids.length === 0) { 
+        Swal.fire('Oops!', 'Pilih aset dulu!', 'warning');
+        return; 
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ route("admin.assets.print-labels") }}';
+    form.target = '_blank';
+    form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}">';
+    ids.forEach(id => { form.innerHTML += '<input type="hidden" name="asset_ids[]" value="' + id + '">'; });
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+}
+
+function confirmBulkDelete() {
+    const count = document.querySelectorAll('.asset-checkbox:checked').length;
+    if (count === 0) return;
+    
+    // SweetAlert
+    Swal.fire({
+        title: 'Hapus ' + count + ' Aset?',
+        text: 'Tindakan ini tidak dapat dibatalkan!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const ids = getSelectedIds();
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("admin.assets.bulk-delete") }}';
+            form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="ids" value="' + ids + '">';
+            document.body.appendChild(form);
+            form.submit();
+        }
     });
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', function() {
+    updateBatchActions();
 });
+
+// ============================================
+// SCANNER
+// ============================================
+let html5QrCode = null;
+
+document.getElementById('scanModal')?.addEventListener('shown.bs.modal', function() {
+    startScanner();
+});
+
+document.getElementById('scanModal')?.addEventListener('hidden.bs.modal', function() {
+    stopScanner();
+    document.getElementById('scan-result').innerHTML = '';
+});
+
+function startScanner() {
+    if (html5QrCode) stopScanner();
+    html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            document.getElementById('scan-result').innerHTML = '<div class="alert alert-success">QR terdeteksi: ' + decodedText + '</div>';
+            stopScanner();
+            bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();
+            checkQRCode(decodedText);
+        },
+        () => {}
+    ).catch(err => {
+        document.getElementById('scan-result').innerHTML = '<div class="alert alert-danger">Gagal akses kamera</div>';
+    });
+}
+
+function stopScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => html5QrCode = null).catch(() => {});
+    }
+}
+
+function checkQRCode(qrCode) {
+    console.log('Checking QR:', qrCode); // Debug
+    
+    fetch('/admin/assets/scan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ barcode: qrCode })
+    })
+    .then(r => r.json())
+    .then(response => {
+        console.log('Response:', response); // Debug
+        if (response.success) {
+            showAssetDetail(response.asset);
+        } else {
+            alert(response.message || 'Aset tidak ditemukan');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Gagal menghubungi server. Cek koneksi.');
+    });
+}
+
+function showAssetDetail(asset) {
+    console.log('Showing asset:', asset); // Debug
+    
+    let checkBtn = '';
+    if (asset.status === 'available') {
+        checkBtn = '<button class="btn btn-success w-100 py-2 rounded-pill mt-2" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-right"></i> Checkout</button>';
+    } else if (asset.status === 'in_use') {
+        checkBtn = '<button class="btn btn-warning w-100 py-2 rounded-pill mt-2" onclick="toggleCheckInOut(' + asset.id + ')"><i class="bi bi-box-arrow-in-left"></i> Checkin</button>';
+    }
+    
+    document.getElementById('resultModalBody').innerHTML = `
+        <div class="text-center mb-3">
+            <span class="badge bg-${asset.status_badge_class} px-3 py-2 rounded-pill fs-6">${asset.status_label}</span>
+        </div>
+        <div class="card bg-light border-0 rounded-3 mb-2">
+            <div class="card-body py-2"><div class="row"><div class="col-5 text-muted small">Kode</div><div class="col-7 fw-semibold">${asset.asset_code}</div></div></div>
+        </div>
+        <div class="card bg-light border-0 rounded-3 mb-2">
+            <div class="card-body py-2"><div class="row"><div class="col-5 text-muted small">Nama</div><div class="col-7 fw-semibold">${asset.name}</div></div></div>
+        </div>
+        <div class="card bg-light border-0 rounded-3 mb-2">
+            <div class="card-body py-2"><div class="row"><div class="col-5 text-muted small">Serial</div><div class="col-7">${asset.serial_number || '-'}</div></div></div>
+        </div>
+        <div class="card bg-light border-0 rounded-3 mb-2">
+            <div class="card-body py-2"><div class="row"><div class="col-5 text-muted small">Lokasi</div><div class="col-7">${asset.location?.name || '-'}</div></div></div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <a href="/admin/assets/${asset.id}" class="btn btn-info flex-grow-1 py-2 rounded-pill"><i class="bi bi-eye"></i> Detail</a>
+            ${checkBtn}
+        </div>`;
+    
+    // Tampilkan modal
+    var resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+    resultModal.show();
+}
+
+document.getElementById('manualCheckBtn')?.addEventListener('click', function() {
+    const code = document.getElementById('manual-qrcode').value;
+    if (code) {
+        bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();
+        checkQRCode(code);
+        document.getElementById('manual-qrcode').value = '';
+    }
+});
+
+window.toggleCheckInOut = function(assetId) {
+    fetch('/admin/assets/' + assetId + '/toggle-checkinout', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            bootstrap.Modal.getInstance(document.getElementById('resultModal')).hide();
+            location.reload();
+        }
+    });
+};
 </script>
 @endpush

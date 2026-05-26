@@ -27,6 +27,17 @@
                             <label class="form-label">Port <span class="text-danger">*</span></label>
                             <input type="number" name="port" class="form-control" value="80" required>
                         </div>
+                        <div class="col-sm-4">
+                            <label class="form-label">Terkait Aset</label>
+                            <select name="asset_id" class="form-select">
+                                <option value="">-- Tidak Terkait --</option>
+                                @foreach(\App\Models\Asset::orderBy('name')->get() as $a)
+                                    <option value="{{ $a->id }}" {{ old('asset_id') == $a->id ? 'selected' : '' }}>
+                                        {{ $a->asset_code }} - {{ $a->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-sm-6">
                             <label class="form-label">Username</label>
                             <input type="text" name="username" class="form-control" placeholder="admin">

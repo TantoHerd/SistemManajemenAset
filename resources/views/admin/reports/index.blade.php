@@ -31,7 +31,9 @@
                 <select name="location_id" class="form-select form-select-sm">
                     <option value="">Semua Lokasi</option>
                     @foreach($locations as $loc)
-                        <option value="{{ $loc->id }}" {{ $locationId == $loc->id ? 'selected' : '' }}>{{ $loc->name }}</option>
+                        <option value="{{ $loc->id }}" {{ $locationId == $loc->id ? 'selected' : '' }}>
+                            {{ $loc->name }}
+                        </option>
                     @endforeach
                 </select>
             </div>

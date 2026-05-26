@@ -18,6 +18,7 @@ use App\Exports\AmortizationExport;
 use App\Imports\AssetsImport;
 use App\Exports\ImportTemplateExport;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class AssetController extends Controller
 {
@@ -238,7 +239,7 @@ class AssetController extends Controller
      */
     public function show(Asset $asset)
     {
-        $asset->load(['category', 'location', 'assignedTo', 'maintenances', 'specifications', 'documents']);
+        $asset->load(['category', 'location', 'assignedTo', 'maintenances', 'specifications', 'documents', 'cctvs']);
         
         return view('admin.assets.show', compact('asset'));
     }
@@ -309,22 +310,27 @@ class AssetController extends Controller
         $category = Category::find($request->category_id);
         
         // Hapus spesifikasi lama yang tidak ada di request baru
-        if ($request->has('specifications')) {
+        $requestedKeys = [];
+        if ($request->has('specifications') && is_array($request->specifications)) {
             $requestedKeys = array_keys(array_filter($request->specifications, function($value) {
                 return $value !== null && $value !== '';
             }));
-        } else {
-            $requestedKeys = [];
         }
         
+        $asset->specifications()->whereNotIn('spec_key', $requestedKeys)->delete();
+
         // Hapus spesifikasi yang tidak dikirim
         $asset->specifications()
               ->whereNotIn('spec_key', $requestedKeys)
               ->delete();
         
-        // Simpan/update spesifikasi baru
-        if ($request->has('specifications')) {
+        // Simpan spesifikasi baru
+        if (!empty($requestedKeys)) {
             $this->saveSpecifications($asset, $request->specifications, $category);
+        }
+        
+        if ($asset->wasChanged('asset_code')) {
+            $this->generateBarcodeImage($asset);
         }
         
         // Regenerate barcode if asset code changed
@@ -363,30 +369,21 @@ class AssetController extends Controller
     /**
      * Simpan spesifikasi aset.
      */
-    private function saveSpecifications(Asset $asset, array $specifications, Category $category)
+    private function saveSpecifications(Asset $asset, $specifications, Category $category)
     {
+        if (!is_array($specifications)) {
+            return;
+        }
+
         foreach ($specifications as $key => $value) {
-            // Cek apakah spesifikasi ini milik kategori yang dipilih
+            if (is_null($value) || $value === '') continue;
+            
             $spec = $category->activeSpecifications()->where('key', $key)->first();
+            if (!$spec) continue;
             
-            if (!$spec) {
-                continue; // Skip jika spesifikasi tidak valid untuk kategori ini
-            }
-            
-            // Skip jika tidak required dan nilainya kosong
-            if (!$spec->is_required && (is_null($value) || $value === '')) {
-                continue;
-            }
-            
-            // Simpan atau update spesifikasi
             AssetSpecification::updateOrCreate(
-                [
-                    'asset_id' => $asset->id,
-                    'spec_key' => $key
-                ],
-                [
-                    'spec_value' => $value
-                ]
+                ['asset_id' => $asset->id, 'spec_key' => $key],
+                ['spec_value' => $value]
             );
         }
     }
@@ -767,32 +764,125 @@ class AssetController extends Controller
      */
     public function import(Request $request)
     {
-        set_time_limit(300); // Set timeout 5 menit
+        set_time_limit(300);
         
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240', // Maks 10MB
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ]);
 
         try {
             $import = new AssetsImport();
             Excel::import($import, $request->file('file'));
             
-            $rowCount = $import->getRowCount();
-            $successCount = $import->getSuccessCount();
+            $total = $import->getRowCount();
+            $success = $import->getSuccessCount();
             $failures = $import->getFailures();
-            
-            $message = "Import selesai. Total data: {$rowCount}, Berhasil: {$successCount}, Gagal: " . count($failures);
-            
-            if (count($failures) > 0) {
-                session()->flash('import_errors', $failures);
-                return redirect()->back()->with('warning', $message);
+            $failedCount = count($failures);
+
+            if ($failedCount > 0) {
+                return view('admin.assets.import', [
+                    'import_errors' => $failures,
+                    'import_total' => $total,
+                    'import_success' => $success,
+                    'import_failed' => $failedCount,
+                ]);
             }
+
+            return redirect()->route('admin.assets.index')
+                ->with('success', "✅ Import berhasil! {$success} aset ditambahkan.");
+                
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
             
-            return redirect()->route('admin.assets.index')->with('success', $message);
-            
+            foreach ($failures as $failure) {
+                $errors[] = "Baris {$failure->row()}: " . implode(', ', $failure->errors());
+            }
+
+            return view('admin.assets.import', [
+                'import_errors' => $errors,
+                'import_total' => count($failures),
+                'import_success' => 0,
+                'import_failed' => count($errors),
+            ]);
+                
         } catch (\Exception $e) {
             Log::error('Import error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return view('admin.assets.import', [
+                'import_errors' => [$e->getMessage()],
+                'import_total' => 0,
+                'import_success' => 0,
+                'import_failed' => 1,
+            ]);
         }
+    }
+
+    /**
+     * Bulk delete assets.
+     */
+    public function bulkDelete(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        
+        if (empty($ids)) {
+            return back()->with('error', 'Tidak ada aset yang dipilih');
+        }
+        
+        $count = Asset::whereIn('id', $ids)->delete();
+        
+        return back()->with('success', "{$count} aset berhasil dihapus");
+    }
+
+    /**
+     * Bulk change status.
+     */
+    public function bulkStatus(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        $status = $request->status;
+        
+        if (empty($ids) || !$status) {
+            return back()->with('error', 'Pilih aset dan status tujuan');
+        }
+        
+        Asset::whereIn('id', $ids)->update(['status' => $status]);
+        
+        return back()->with('success', count($ids) . ' aset diubah menjadi ' . Asset::$statuses[$status]);
+    }
+
+    /**
+     * Bulk change category.
+     */
+    public function bulkCategory(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        $categoryId = $request->category_id;
+        
+        if (empty($ids) || !$categoryId) {
+            return back()->with('error', 'Pilih aset dan kategori tujuan');
+        }
+        
+        Asset::whereIn('id', $ids)->update(['category_id' => $categoryId]);
+        
+        $category = Category::find($categoryId);
+        return back()->with('success', count($ids) . ' aset dipindahkan ke kategori ' . $category->name);
+    }
+
+    /**
+     * Bulk change location.
+     */
+    public function bulkLocation(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        $locationId = $request->location_id;
+        
+        if (empty($ids) || !$locationId) {
+            return back()->with('error', 'Pilih aset dan lokasi tujuan');
+        }
+        
+        Asset::whereIn('id', $ids)->update(['location_id' => $locationId]);
+        
+        $location = Location::find($locationId);
+        return back()->with('success', count($ids) . ' aset dipindahkan ke ' . $location->name);
     }
 }

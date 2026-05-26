@@ -72,12 +72,31 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
 
     public function model(array $row)
     {
+        // Skip baris kosong (semua kolom null)
+        $nonEmpty = array_filter($row, function($value) {
+            return $value !== null && $value !== '';
+        });
+        
+        if (count($nonEmpty) === 0) {
+            return null; // Skip tanpa dihitung
+        }
+        
+        // Skip kalau nama_aset kosong
+        $name = $row['nama_aset'] ?? $row['nama aset'] ?? $row['name'] ?? null;
+        if (empty($name)) {
+            return null; // Skip
+        }
+        
         $this->rowCount++;
 
         Log::info('Row ' . $this->rowCount . ': ' . json_encode($row));
 
         // Map kolom dengan fleksibel
         $mappedRow = $this->mapColumns($row);
+
+        // DEBUG: Lihat isi mappedRow
+        // Log::info('Mapped Row:', $mappedRow);
+        // dd($mappedRow); // Hentikan dan tampilkan
 
         // Validasi required fields
         if (empty($mappedRow['nama_aset'])) {
@@ -95,8 +114,8 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
             return null;
         }
 
-        if (empty($mappedRow['harga_beli']) || $mappedRow['harga_beli'] <= 0) {
-            $this->failures[] = "Baris {$this->rowCount}: Harga beli harus diisi dan lebih dari 0";
+        if (!isset($mappedRow['harga_beli']) || $mappedRow['harga_beli'] === '' || $mappedRow['harga_beli'] === null) {
+            $this->failures[] = "Baris {$this->rowCount}: Harga beli harus diisi";
             return null;
         }
 
@@ -210,16 +229,19 @@ class AssetsImport implements ToModel, WithHeadingRow, WithValidation, WithBatch
     {
         $mapped = [];
         
-        Log::info('Available keys: ' . json_encode(array_keys($row)));
-        
         foreach ($this->columnMap as $target => $possibleKeys) {
             foreach ($possibleKeys as $key) {
                 $foundKey = $this->findKeyCaseInsensitive($row, $key);
-                if ($foundKey && !empty($row[$foundKey]) && $row[$foundKey] !== null) {
+                if ($foundKey) {
                     $mapped[$target] = $row[$foundKey];
                     break;
                 }
             }
+        }
+        
+        // Set default 0 untuk harga_beli kalau tidak ada
+        if (!isset($mapped['harga_beli'])) {
+            $mapped['harga_beli'] = 0;
         }
         
         return $mapped;

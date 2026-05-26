@@ -27,4 +27,9 @@ class Cctv extends Model
     {
         return $value ?: "http://{$this->ip_address}:{$this->port}/snapshot.jpg";
     }
+
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class);
+    }
 }

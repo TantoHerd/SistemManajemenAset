@@ -151,4 +151,38 @@ class MaintenanceController extends Controller
         
         return view('admin.maintenances.report', compact('maintenances', 'assets', 'statuses', 'stats'));
     }
+
+    public function calendar(Request $request)
+    {
+        $maintenances = Maintenance::with('asset')
+            ->whereNotNull('maintenance_date')
+            ->get()
+            ->map(function($m) {
+                return [
+                    'id' => $m->id,
+                    'title' => $m->title ?? 'Maintenance',
+                    'start' => $m->maintenance_date->format('Y-m-d'),
+                    'url' => route('admin.maintenances.show', $m),
+                    'backgroundColor' => $this->getStatusColor($m->status),
+                    'borderColor' => $this->getStatusColor($m->status),
+                    'textColor' => '#fff',
+                    'extendedProps' => [
+                        'asset' => $m->asset->name ?? '-',
+                        'status' => $m->status_label,
+                        'cost' => number_format($m->cost, 0, ',', '.'),
+                    ]
+                ];
+            });
+
+        return view('admin.maintenances.calendar', compact('maintenances'));
+    }
+
+    private function getStatusColor($status)
+    {
+        return [
+            'pending' => '#ffc107',
+            'in_progress' => '#4361ee',
+            'completed' => '#28a745',
+        ][$status] ?? '#6c757d';
+    }
 }

@@ -103,14 +103,41 @@
                 </form>
                 
                 <!-- Error Display -->
-                @if(session('import_errors'))
-                <div class="alert alert-danger mt-3 mb-0">
-                    <h6><i class="bi bi-exclamation-circle me-1"></i>Detail Error ({{ count(session('import_errors')) }}):</h6>
-                    <ul class="mb-0 small">
-                        @foreach(session('import_errors') as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+                @if(isset($import_errors) && count($import_errors) > 0)
+                <div class="card mt-3 border-danger">
+                    <div class="card-header bg-{{ $import_failed > 0 ? 'danger' : 'success' }} text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-{{ $import_failed > 0 ? 'exclamation-triangle' : 'check-circle' }} me-1"></i>
+                            Hasil Import
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <div class="fs-4 fw-bold text-primary">{{ $import_total ?? 0 }}</div>
+                                <small class="text-muted">Total</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fs-4 fw-bold text-success">{{ $import_success ?? 0 }}</div>
+                                <small class="text-muted">Berhasil</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fs-4 fw-bold text-danger">{{ $import_failed ?? 0 }}</div>
+                                <small class="text-muted">Gagal</small>
+                            </div>
+                        </div>
+
+                        @if($import_failed > 0)
+                        <div class="alert alert-danger mb-0">
+                            <h6 class="fw-bold"><i class="bi bi-exclamation-circle me-1"></i>Detail Error:</h6>
+                            <ul class="mb-0 small">
+                                @foreach($import_errors as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        @endif
+                    </div>
                 </div>
                 @endif
             </div>
