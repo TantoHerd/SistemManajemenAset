@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AssetDocumentController;
 use App\Http\Controllers\Admin\MecardController;
 use App\Http\Controllers\Admin\CctvController;
+use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Admin\StockOpnameController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -220,7 +222,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('mecards/{mecard}/download-qr', [MecardController::class, 'downloadQr'])->name('mecards.download-qr');
             Route::get('mecards/{mecard}/download-mecard', [MecardController::class, 'downloadMecard'])->name('mecards.download-mecard');
             Route::get('mecards/{mecard}/download-pdf', [MecardController::class, 'downloadPdf'])->name('mecards.download-pdf');
-            Route::get('mecards/{mecard}/print', [MecardController::class, 'printCard'])->name('mecards.print');
+            Route::get('/mecards/{mecard}/print', [App\Http\Controllers\Admin\MeCardController::class, 'printCard'])->name('mecards.print');
             Route::get('mecards/{mecard}/preview', [MecardController::class, 'previewCard'])->name('mecards.preview');
         });
 
@@ -232,6 +234,32 @@ Route::middleware(['auth'])->group(function () {
         Route::post('cctvs/ping-all', [CctvController::class, 'pingAll'])->name('cctvs.ping-all');
         Route::get('cctvs/{cctv}/ping', [CctvController::class, 'ping'])->name('cctvs.ping');
         Route::get('cctvs/{cctv}/snapshot', [CctvController::class, 'snapshot'])->name('cctvs.snapshot');
+    
+        // Backup
+        Route::prefix('backup')->name('backup.')->group(function () {
+            Route::get('/', [BackupController::class, 'index'])->name('index');
+            Route::post('/create', [BackupController::class, 'create'])->name('create');
+            Route::get('/download/{fileName}', [BackupController::class, 'download'])->name('download');
+            Route::delete('/destroy/{fileName}', [BackupController::class, 'destroy'])->name('destroy');
+            Route::post('/restore', [BackupController::class, 'restore'])->name('restore');
+            Route::get('/schedule', [BackupController::class, 'scheduleSettings'])->name('schedule');
+            Route::post('/schedule', [BackupController::class, 'updateSchedule'])->name('schedule.update');
+        })->middleware(['role:super_admin|admin']);
+
+        // Stock Opname Routes
+        Route::prefix('stock-opname')->name('stock-opname.')->group(function () {
+            Route::get('/', [StockOpnameController::class, 'index'])->name('index');
+            Route::get('/create', [StockOpnameController::class, 'create'])->name('create');
+            Route::post('/', [StockOpnameController::class, 'store'])->name('store');
+            Route::get('/{stockOpname}', [StockOpnameController::class, 'show'])->name('show');
+            Route::post('/{stockOpname}/start', [StockOpnameController::class, 'start'])->name('start');
+            Route::get('/{stockOpname}/scan', [StockOpnameController::class, 'scan'])->name('scan');
+            Route::get('/{stockOpname}/scan-asset', [StockOpnameController::class, 'scanAsset'])->name('scan-asset');  // AJAX endpoint
+            Route::post('/{stockOpname}/scan/{item}', [StockOpnameController::class, 'processScan'])->name('process-scan');
+            Route::post('/{stockOpname}/complete', [StockOpnameController::class, 'complete'])->name('complete');
+            Route::get('/{stockOpname}/report', [StockOpnameController::class, 'report'])->name('report');
+            Route::delete('/{stockOpname}', [StockOpnameController::class, 'destroy'])->name('destroy');
+        });
     });
 });
 

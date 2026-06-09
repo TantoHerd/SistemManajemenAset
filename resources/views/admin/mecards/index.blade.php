@@ -39,7 +39,7 @@
                                 <a href="{{ route('admin.mecards.show', $mecard) }}" class="btn btn-sm btn-info" title="Lihat"><i class="bi bi-eye"></i></a>
                                 <a href="{{ route('admin.mecards.edit', $mecard) }}" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil"></i></a>
                                 <a href="{{ route('admin.mecards.download-qr', $mecard) }}" class="btn btn-sm btn-success" title="Download QR"><i class="bi bi-qr-code"></i></a>
-                                <a href="{{ route('admin.mecards.print', $mecard) }}" class="btn btn-sm btn-secondary" title="Cetak Kartu Digital"><i class="bi bi-printer me-1"></i></a>
+                                <a href="{{ route('admin.mecards.print', $mecard) }}" class="btn btn-sm btn-secondary" title="Cetak Kartu Digital"><i class="bi bi-printer"></i></a>
                                 <button onclick="confirmDelete('{{ route('admin.mecards.destroy', $mecard) }}')" class="btn btn-sm btn-danger" title="Hapus"><i class="bi bi-trash"></i></button>
                             </div>
                         </td>

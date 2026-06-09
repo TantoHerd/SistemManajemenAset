@@ -258,7 +258,6 @@
             
             <div class="qr-box">
                 {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(80)->margin(1)->generate($mecard->toMeCard()) !!}
-            </div>
             <div class="scan-text">Scan Me</div>
         </div>
         

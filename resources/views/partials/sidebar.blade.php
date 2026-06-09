@@ -147,6 +147,16 @@
             </ul>
         </li>
         @endcanany --}}
+
+        <!-- Stock Opname -->
+        @role('super_admin|admin')
+        <li class="nav-item">
+            <a class="nav-link {{ request()->routeIs('admin.stock-opname.*') ? 'active' : '' }}" 
+            href="{{ route('admin.stock-opname.index') }}">
+                <i class="bi bi-clipboard-check"></i> Stock Opname
+            </a>
+        </li>
+        @endrole
         
         <!-- Konfigurasi -->
         @can('view settings')
@@ -156,5 +166,30 @@
             </a>
         </li>
         @endcan
+
+        <!-- Backup Database -->
+        @role('super_admin|admin')
+        <li class="nav-item has-submenu">
+            <a class="nav-link {{ request()->routeIs('admin.backup.*') ? 'active' : '' }}" 
+            href="javascript:void(0)" onclick="toggleSubmenu('submenu-backup')">
+                <i class="bi bi-database"></i> Database Backup
+                <i class="bi bi-chevron-down chevron" id="chevron-backup"></i>
+            </a>
+            <ul class="submenu" id="submenu-backup">
+                <li>
+                    <a class="nav-link {{ request()->routeIs('admin.backup.index') ? 'active' : '' }}" 
+                    href="{{ route('admin.backup.index') }}">
+                        <i class="bi bi-hdd-stack"></i> Backup & Restore
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link {{ request()->routeIs('admin.backup.schedule') ? 'active' : '' }}" 
+                    href="{{ route('admin.backup.schedule') }}">
+                        <i class="bi bi-clock"></i> Schedule Backup
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @endrole
     </ul>
 </div>
