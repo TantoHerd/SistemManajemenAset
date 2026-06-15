@@ -16,9 +16,52 @@
         <a href="{{ route('admin.assets.edit', $asset) }}" class="btn btn-warning btn-sm">
             <i class="bi bi-pencil"></i> Edit
         </a>
+        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#moveLocationModal">
+            <i class="bi bi-arrow-left-right"></i> Pindah Lokasi
+        </button>
         <a href="{{ route('admin.assets.index') }}" class="btn btn-secondary btn-sm">
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
+    </div>
+
+    <!-- Modal Pindah Lokasi -->
+    <div class="modal fade" id="moveLocationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ route('admin.asset-location-history.move', $asset) }}" method="POST">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">Pindah Lokasi Aset</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Lokasi Baru</label>
+                            <select name="new_location_id" class="form-select" required>
+                                <option value="">Pilih Lokasi</option>
+                                @foreach($locations as $location)
+                                    <option value="{{ $location->id }}" {{ $asset->location_id == $location->id ? 'selected' : '' }}>
+                                        {{ $location->full_path }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Alasan Pindah</label>
+                            <input type="text" name="reason" class="form-control" placeholder="Contoh: Restrukturisasi kantor">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Catatan</label>
+                            <textarea name="notes" class="form-control" rows="3" placeholder="Catatan tambahan..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Pindahkan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -123,48 +166,63 @@
     {{-- INFORMASI ASET --}}
     <div class="col-12 col-lg-6">
         <div class="card h-100">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-laptop text-primary"></i> Informasi Aset</h6>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
-                        <span class="text-muted">Kode Aset</span>
-                        <code class="bg-light px-2 py-1 rounded">{{ $asset->asset_code }}</code>
-                    </li>
-                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
-                        <span class="text-muted">Nama Aset</span>
-                        <span class="fw-semibold">{{ $asset->name }}</span>
-                    </li>
-                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
-                        <span class="text-muted">Serial Number</span>
-                        <span>{{ $asset->serial_number ?? '-' }}</span>
-                    </li>
-                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
-                        <span class="text-muted">Brand / Model</span>
-                        <span>{{ $asset->brand ?? '-' }} / {{ $asset->model ?? '-' }}</span>
-                    </li>
-                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
-                        <span class="text-muted">Garansi</span>
-                        @if($asset->warranty_expiry)
-                            @if($asset->is_under_warranty)
-                                <span class="badge bg-success">Aktif hingga {{ $asset->warranty_expiry->format('d M Y') }}</span>
-                            @else
-                                <span class="badge bg-secondary">Berakhir {{ $asset->warranty_expiry->format('d M Y') }}</span>
-                            @endif
-                        @else
-                            <span>-</span>
-                        @endif
-                    </li>
-                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
-                        <span class="text-muted">Tahun Pengadaan</span>
-                        <span>{{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</span>
-                    </li>
-                    <li class="list-group-item">
-                        <span class="text-muted d-block mb-1">Catatan</span>
-                        <p class="mb-0">{{ $asset->notes ?? '-' }}</p>
-                    </li>
-                </ul>
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#detail">Informasi Aset</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#history">
+                        <i class="bi bi-clock-history"></i> History Perpindahan
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content mt-3">
+                <div class="tab-pane fade show active" id="detail">
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                                <span class="text-muted">Kode Aset</span>
+                                <code class="bg-light px-2 py-1 rounded">{{ $asset->asset_code }}</code>
+                            </li>
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                                <span class="text-muted">Nama Aset</span>
+                                <span class="fw-semibold">{{ $asset->name }}</span>
+                            </li>
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                                <span class="text-muted">Serial Number</span>
+                                <span>{{ $asset->serial_number ?? '-' }}</span>
+                            </li>
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                                <span class="text-muted">Brand / Model</span>
+                                <span>{{ $asset->brand ?? '-' }} / {{ $asset->model ?? '-' }}</span>
+                            </li>
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                                <span class="text-muted">Garansi</span>
+                                @if($asset->warranty_expiry)
+                                    @if($asset->is_under_warranty)
+                                        <span class="badge bg-success">Aktif hingga {{ $asset->warranty_expiry->format('d M Y') }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">Berakhir {{ $asset->warranty_expiry->format('d M Y') }}</span>
+                                    @endif
+                                @else
+                                    <span>-</span>
+                                @endif
+                            </li>
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+                                <span class="text-muted">Tahun Pengadaan</span>
+                                <span>{{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</span>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted d-block mb-1">Catatan</span>
+                                <p class="mb-0">{{ $asset->notes ?? '-' }}</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="history">
+                    @include('admin.asset-location-history._table', ['histories' => $asset->locationHistory()->paginate(10)])
+                </div>
             </div>
         </div>
     </div>

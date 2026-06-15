@@ -16,6 +16,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<!-- GridStack CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.1.0/dist/gridstack.min.css" />
 
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -28,18 +30,27 @@
         position: fixed;
         top: 0;
         left: 0;
-        height: 100vh;
         width: 280px;
+        height: 100%;  /* Ganti dari 100vh ke 100% */
         background: linear-gradient(135deg, #1e1e2f 0%, #2d2d44 100%);
         color: #e0e0e0;
         transition: all 0.3s;
         z-index: 1000;
-        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;  /* Prevent overflow on parent */
     }
     .sidebar .brand {
         padding: 20px;
         text-align: center;
         border-bottom: 1px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;  /* Tidak ikut scroll */
+    }
+    .sidebar .sidebar-menu-container {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: 20px;
     }
     .sidebar .brand h3 {
         font-size: 1.2rem;
@@ -52,6 +63,7 @@
     }
     .sidebar .nav {
         padding: 0 10px;
+        margin: 0;
     }
     .sidebar .nav-link {
         color: #d1d1e0;
@@ -70,6 +82,136 @@
     .sidebar .nav-link.active {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
+    }
+
+    /* ============================================ */
+    /* SUBMENU - TAMBAHAN (Jangan hapus CSS di atas) */
+    /* ============================================ */
+
+    /* Submenu container */
+    .sidebar .submenu {
+        display: none;
+        list-style: none;
+        padding-left: 45px;
+        margin: 5px 0 10px 0;
+    }
+
+    /* Submenu saat aktif */
+    .sidebar .submenu.show {
+        display: block;
+    }
+
+    /* Submenu item */
+    .sidebar .submenu .nav-link {
+        padding: 8px 15px;
+        font-size: 0.85rem;
+        border-radius: 8px;
+    }
+
+    .sidebar .submenu .nav-link i {
+        font-size: 0.8rem;
+        width: 25px;
+    }
+
+    /* Chevron/Icon panah */
+    .sidebar .has-submenu > a .chevron {
+        margin-left: auto;
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar .has-submenu.open > a .chevron {
+        transform: rotate(180deg);
+    }
+
+    /* Nav Header separator */
+    .sidebar .nav-header {
+        padding: 20px 15px 8px 15px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8b8b9e;
+        font-weight: 600;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        margin-top: 10px;
+    }
+
+    /* Active submenu item */
+    .sidebar .submenu .nav-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    /* Scrollbar biar halus */
+    .sidebar {
+        scrollbar-width: thin;
+        scrollbar-color: #667eea rgba(255,255,255,0.1);
+    }
+
+    .sidebar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 4px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+        background: #667eea;
+        border-radius: 4px;
+    }
+
+    /* ============================================ */
+    /* RESPONSIVE MOBILE - PASTIKAN SCROLL BISA */
+    /* ============================================ */
+    @media (max-width: 768px) {
+        .sidebar {
+            width: 260px;
+            transform: translateX(-100%);
+            z-index: 1050;
+        }
+        
+        .sidebar.show {
+            transform: translateX(0);
+        }
+        
+        /* Pastikan scroll tetap berfungsi di mobile */
+        .sidebar .sidebar-menu-container {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
+            height: calc(100% - 100px); /* Kurangi tinggi brand */
+        }
+        
+        /* Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1040;
+            display: none;
+        }
+        
+        .sidebar-overlay.show {
+            display: block;
+        }
+        
+        /* Tombol toggle */
+        .menu-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1060;
+            background: #667eea;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            display: block;
+            cursor: pointer;
+        }
     }
     
     /* ============================================ */

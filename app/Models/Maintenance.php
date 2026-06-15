@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditTrait;
 
 class Maintenance extends Model
 {
     use HasFactory;
+    use AuditTrait;
 
     protected $table = 'maintenances';
 
@@ -64,5 +66,15 @@ class Maintenance extends Model
     public function getFormattedDateAttribute()
     {
         return $this->maintenance_date ? $this->maintenance_date->format('d/m/Y') : '-';
+    }
+
+    protected function getModuleName()
+    {
+        return 'asset';
+    }
+
+    protected function getRecordName()
+    {
+        return $this->name . ' (' . $this->asset_code . ')';
     }
 }

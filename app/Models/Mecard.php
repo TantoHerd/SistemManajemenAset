@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditTrait;
 
 class Mecard extends Model
 {
     use HasFactory;
+    use AuditTrait;
 
     protected $table = 'mecards';
 
@@ -140,5 +142,15 @@ class Mecard extends Model
         $mecard .= ";";
         
         return $mecard;
+    }
+
+    protected function getModuleName()
+    {
+        return 'asset';
+    }
+
+    protected function getRecordName()
+    {
+        return $this->name . ' (' . $this->asset_code . ')';
     }
 }

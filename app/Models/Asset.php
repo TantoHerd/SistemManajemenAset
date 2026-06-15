@@ -15,10 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Traits\AuditTrait;
 
 class Asset extends Model
 {
     use HasFactory;
+    use AuditTrait;
 
     /**
      * Status constants
@@ -63,6 +65,10 @@ class Asset extends Model
         'barcode_image',
         'notes',
         'warranty_expiry',
+        'auto_maintenance_frequency',
+        'last_maintenance_date',
+        'next_maintenance_date',
+        'auto_maintenance_active',
     ];
 
     /**
@@ -79,6 +85,9 @@ class Asset extends Model
         'useful_life_months' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'last_maintenance_date' => 'date',
+        'next_maintenance_date' => 'date',
+        'auto_maintenance_active' => 'boolean',
     ];
 
     /**
@@ -445,5 +454,118 @@ class Asset extends Model
                 $asset->current_value = $asset->purchase_price;
             }
         });
+    }
+    
+    protected function getModuleName()
+    {
+        return 'asset';
+    }
+
+    protected function getRecordName()
+    {
+        return $this->name . ' (' . $this->asset_code . ')';
+    }
+
+    // Record location change
+    public function recordLocationChange($oldLocationId, $newLocationId, $reason = null, $notes = null)
+    {
+        $oldLocation = $oldLocationId ? Location::find($oldLocationId) : null;
+        $newLocation = $newLocationId ? Location::find($newLocationId) : null;
+
+        return AssetLocationHistory::create([
+            'asset_id' => $this->id,
+            'old_location_id' => $oldLocationId,
+            'new_location_id' => $newLocationId,
+            'old_location_name' => $oldLocation?->name,
+            'new_location_name' => $newLocation?->name,
+            'changed_by' => auth()->id(),
+            'reason' => $reason,
+            'notes' => $notes,
+        ]);
+    }
+
+    // Get location history
+    public function locationHistory()
+    {
+        return $this->hasMany(AssetLocationHistory::class)->latest();
+    }
+
+    // Override update untuk auto record
+    protected static function booted()
+    {
+        static::updated(function ($asset) {
+            if ($asset->isDirty('location_id')) {
+                $oldLocationId = $asset->getOriginal('location_id');
+                $newLocationId = $asset->location_id;
+                
+                $asset->recordLocationChange($oldLocationId, $newLocationId, 'Update dari form aset');
+            }
+        });
+    }
+
+    // Hitung next maintenance date
+    public function calculateNextMaintenanceDate()
+    {
+        if (!$this->auto_maintenance_active || $this->auto_maintenance_frequency == 'none') {
+            return null;
+        }
+        
+        $lastDate = $this->last_maintenance_date 
+            ? \Carbon\Carbon::parse($this->last_maintenance_date)
+            : \Carbon\Carbon::parse($this->purchase_date ?? now());
+        
+        switch ($this->auto_maintenance_frequency) {
+            case 'monthly': return $lastDate->addMonth();
+            case 'quarterly': return $lastDate->addMonths(3);
+            case 'semi_annual': return $lastDate->addMonths(6);
+            case 'annual': return $lastDate->addYear();
+            default: return null;
+        }
+    }
+
+    // Create auto maintenance
+    public function createAutoMaintenance()
+    {
+        Log::info('Auto Maintenance Check', [
+            'asset_id' => $this->id,
+            'active' => $this->auto_maintenance_active,
+            'next_date' => $this->next_maintenance_date,
+            'now' => now(),
+            'condition' => $this->next_maintenance_date <= now()
+        ]);
+        
+        if (!$this->auto_maintenance_active || !$this->next_maintenance_date) {
+            return null;
+        }
+        
+        if ($this->next_maintenance_date <= now()) {
+            $frequencyLabels = [
+                'monthly' => 'Bulanan',
+                'quarterly' => '3 Bulanan',
+                'semi_annual' => '6 Bulanan',
+                'annual' => 'Tahunan',
+            ];
+            
+            $frequencyLabel = $frequencyLabels[$this->auto_maintenance_frequency] ?? ucfirst($this->auto_maintenance_frequency);
+            
+            $maintenance = Maintenance::create([
+                'asset_id' => $this->id,
+                'title' => 'Maintenance Rutin - ' . $frequencyLabel,
+                'maintenance_date' => now(),
+                'status' => 'pending',  // Gunakan 'pending' jika enum tidak punya 'scheduled'
+                'technician' => null,
+                'cost' => 0,
+                'description' => "Maintenance otomatis untuk aset {$this->name}",
+            ]);
+            
+            $this->update([
+                'last_maintenance_date' => now(),
+                'next_maintenance_date' => $this->calculateNextMaintenanceDate(),
+            ]);
+            
+            return $maintenance;
+        }
+        
+        return null;
     }
 }

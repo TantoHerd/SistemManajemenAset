@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditTrait;
 
 class StockOpnameItem extends Model
 {
     use HasFactory;
+    use AuditTrait;
 
     protected $fillable = [
         'session_id', 'asset_id', 'expected_location', 'actual_status', 
@@ -42,5 +44,15 @@ class StockOpnameItem extends Model
             'moved' => '<span class="badge bg-info">Berpindah</span>',
             default => '<span class="badge bg-secondary">Unknown</span>',
         };
+    }
+
+    protected function getModuleName()
+    {
+        return 'asset';
+    }
+
+    protected function getRecordName()
+    {
+        return $this->name . ' (' . $this->asset_code . ')';
     }
 }

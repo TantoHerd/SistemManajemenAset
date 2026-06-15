@@ -244,6 +244,54 @@
                         
                         <hr>
                     </div>
+
+                    <!-- Auto Maintenance Section -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="bi bi-calendar-repeat me-2"></i> Maintenance Otomatis
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input type="hidden" name="auto_maintenance_active" value="0">
+                                            <input type="checkbox" name="auto_maintenance_active" class="form-check-input" id="autoMaintenanceActive" value="1"
+                                                {{ $asset->auto_maintenance_active ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold" for="autoMaintenanceActive">
+                                                Aktifkan Maintenance Otomatis
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Sistem akan otomatis membuat jadwal maintenance periodik</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3" id="frequencyField" style="{{ $asset->auto_maintenance_active ? '' : 'display: none;' }}">
+                                        <label class="form-label">Frekuensi Maintenance</label>
+                                        <select name="auto_maintenance_frequency" class="form-select">
+                                            <option value="none" {{ $asset->auto_maintenance_frequency == 'none' ? 'selected' : '' }}>Tidak Aktif</option>
+                                            <option value="monthly" {{ $asset->auto_maintenance_frequency == 'monthly' ? 'selected' : '' }}>Setiap Bulan</option>
+                                            <option value="quarterly" {{ $asset->auto_maintenance_frequency == 'quarterly' ? 'selected' : '' }}>Setiap 3 Bulan</option>
+                                            <option value="semi_annual" {{ $asset->auto_maintenance_frequency == 'semi_annual' ? 'selected' : '' }}>Setiap 6 Bulan</option>
+                                            <option value="annual" {{ $asset->auto_maintenance_frequency == 'annual' ? 'selected' : '' }}>Setiap Tahun</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            @if($asset->last_maintenance_date)
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Maintenance terakhir: <strong>{{ $asset->last_maintenance_date->format('d/m/Y') }}</strong><br>
+                                Maintenance berikutnya: <strong>{{ $asset->next_maintenance_date ? $asset->next_maintenance_date->format('d/m/Y') : '-' }}</strong>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <hr>
                     
                     <!-- Informasi Finansial -->
                     <h6 class="mb-3">
@@ -714,6 +762,13 @@ $(document).ready(function() {
         loadSpecifications(currentCategoryId, currentCategoryName, false);
     }
     
+});
+
+document.getElementById('autoMaintenanceActive')?.addEventListener('change', function() {
+    const frequencyField = document.getElementById('frequencyField');
+    if (frequencyField) {
+        frequencyField.style.display = this.checked ? 'block' : 'none';
+    }
 });
 </script>
 @endpush

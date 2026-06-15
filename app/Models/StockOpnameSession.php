@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditTrait;
 
 class StockOpnameSession extends Model
 {
     use HasFactory;
+    use AuditTrait;
 
     protected $table = 'stock_opname_sessions';
 
@@ -57,5 +59,15 @@ class StockOpnameSession extends Model
             'moved' => $items->where('actual_status', 'moved')->count(),
             'scanned' => $items->whereNotNull('scanned_at')->count(),
         ];
+    }
+
+    protected function getModuleName()
+    {
+        return 'asset';
+    }
+
+    protected function getRecordName()
+    {
+        return $this->name . ' (' . $this->asset_code . ')';
     }
 }

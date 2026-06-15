@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditTrait;
 
 class Cctv extends Model
 {
+    use AuditTrait;
+
     protected $fillable = [
         'name', 'ip_address', 'port', 'username', 'password',
         'brand', 'model', 'stream_url', 'snapshot_url',
@@ -31,5 +34,15 @@ class Cctv extends Model
     public function asset()
     {
         return $this->belongsTo(Asset::class);
+    }
+
+    protected function getModuleName()
+    {
+        return 'asset';
+    }
+
+    protected function getRecordName()
+    {
+        return $this->name . ' (' . $this->asset_code . ')';
     }
 }

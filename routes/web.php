@@ -18,6 +18,11 @@ use App\Http\Controllers\Admin\MecardController;
 use App\Http\Controllers\Admin\CctvController;
 use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\StockOpnameController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\ReminderSettingController;
+use App\Http\Controllers\Admin\AssetLocationHistoryController;
+use App\Http\Controllers\Mobile\StockOpnameMobileController;
+use App\Http\Controllers\Admin\DashboardWidgetController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -33,6 +38,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::patch('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+
     
     // ============================================
     // ADMIN ROUTES
@@ -41,7 +47,7 @@ Route::middleware(['auth'])->group(function () {
         
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        
+
         // ============================================
         // ASSETS - FINAL
         // ============================================
@@ -260,6 +266,39 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{stockOpname}/report', [StockOpnameController::class, 'report'])->name('report');
             Route::delete('/{stockOpname}', [StockOpnameController::class, 'destroy'])->name('destroy');
         });
+
+        // Audit Log Routes
+        Route::prefix('audit-log')->name('audit-log.')->middleware(['auth', 'role:super_admin|admin'])->group(function () {
+            Route::get('/', [AuditLogController::class, 'index'])->name('index');
+            Route::get('/{auditLog}', [AuditLogController::class, 'show'])->name('show');
+            Route::post('/export', [AuditLogController::class, 'export'])->name('export');
+            Route::delete('/clean', [AuditLogController::class, 'destroy'])->name('clean');
+        })->middleware(['auth', 'role:super_admin|admin']);
+
+        // Reminder Settings Routes
+        Route::prefix('reminder')->name('reminder.')->middleware(['auth', 'role:super_admin|admin'])->group(function () {
+            Route::get('/', [ReminderSettingController::class, 'index'])->name('index');
+            Route::put('/update', [ReminderSettingController::class, 'update'])->name('update');
+            Route::post('/test', [ReminderSettingController::class, 'test'])->name('test');
+        })->middleware(['auth', 'role:super_admin|admin']);
+
+        // Asset Location History Routes
+        Route::prefix('asset-location-history')->name('asset-location-history.')->middleware(['auth', 'role:super_admin|admin'])->group(function () {
+            Route::get('/', [AssetLocationHistoryController::class, 'index'])->name('index');
+            Route::get('/asset/{asset}', [AssetLocationHistoryController::class, 'show'])->name('show');
+            Route::get('/timeline/{asset}', [AssetLocationHistoryController::class, 'timeline'])->name('timeline');
+            Route::post('/move/{asset}', [AssetLocationHistoryController::class, 'moveAsset'])->name('move');
+            Route::post('/export', [AssetLocationHistoryController::class, 'export'])->name('export');
+        })->middleware(['auth', 'role:super_admin|admin']);
+    });
+
+    // Route untuk Mobile Stock Opname (di luar admin prefix)
+    Route::middleware(['auth'])->prefix('stock-opname-mobile')->name('mobile.stock-opname.')->group(function () {
+        Route::get('/', [StockOpnameMobileController::class, 'index'])->name('index');
+        Route::get('/scan/{session}', [StockOpnameMobileController::class, 'scan'])->name('scan');
+        Route::get('/scan-asset/{session}', [StockOpnameMobileController::class, 'scanAsset'])->name('scan-asset');
+        Route::post('/submit-scan/{session}/{item}', [StockOpnameMobileController::class, 'submitScan'])->name('submit-scan');
+        Route::post('/sync', [StockOpnameMobileController::class, 'sync'])->name('sync');
     });
 });
 

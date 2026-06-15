@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\AuditTrait;
 
 class Loan extends Model
 {
     use SoftDeletes;
+    use AuditTrait;
 
     protected $fillable = [
         'loan_code',
@@ -115,5 +117,15 @@ class Loan extends Model
     {
         return $this->status === self::STATUS_ACTIVE && 
                now()->startOfDay()->gt($this->expected_return_date);
+    }
+
+    protected function getModuleName()
+    {
+        return 'asset';
+    }
+
+    protected function getRecordName()
+    {
+        return $this->name . ' (' . $this->asset_code . ')';
     }
 }

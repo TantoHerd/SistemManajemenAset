@@ -186,50 +186,60 @@ class AssetController extends Controller
             'useful_life_months' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
             'warranty_expiry' => 'nullable|date',
-            // Spesifikasi tidak wajib di validasi karena dinamis
+            'auto_maintenance_active' => 'nullable|boolean',
+            'auto_maintenance_frequency' => 'required|in:none,monthly,quarterly,semi_annual,annual',
             'specifications' => 'nullable|array',
             'specifications.*' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()
-                             ->withErrors($validator)
-                             ->withInput();
+                            ->withErrors($validator)
+                            ->withInput();
         }
 
-        // Get category for default useful life
         $category = Category::find($request->category_id);
         
         $data = $request->except(['specifications']);
         
-        // Set default useful life from category if not provided
+        // Set default values
         if (empty($data['useful_life_months'])) {
             $data['useful_life_months'] = $category->useful_life_months;
         }
-        
-        // Set default residual value (10% of purchase price) if not provided
         if (empty($data['residual_value'])) {
             $data['residual_value'] = $data['purchase_price'] * 0.1;
         }
-        
-        // Set initial current value
         $data['current_value'] = $data['purchase_price'];
-        
-        // Auto generate asset code if not provided
         if (empty($data['asset_code'])) {
             $data['asset_code'] = $this->generateAssetCode();
         }
         
+        // ========== AUTO MAINTENANCE ==========
+        $autoActive = $request->has('auto_maintenance_active');
+        $frequency = $request->auto_maintenance_frequency ?? 'none';
+        
+        $data['auto_maintenance_active'] = $autoActive;
+        $data['auto_maintenance_frequency'] = $frequency;
+        
+        if ($autoActive && $frequency != 'none') {
+            // Untuk aset baru, set last maintenance = purchase_date
+            $data['last_maintenance_date'] = $request->purchase_date;
+            $data['next_maintenance_date'] = $this->calculateNextDate($request->purchase_date, $frequency);
+        } else {
+            $data['last_maintenance_date'] = null;
+            $data['next_maintenance_date'] = null;
+        }
+        
         $asset = Asset::create($data);
         
-        // ========== SIMPAN SPESIFIKASI ==========
+        // Save specifications
         if ($request->has('specifications')) {
             $this->saveSpecifications($asset, $request->specifications, $category);
         }
         
-        // Generate barcode image
+        // Generate barcode
         $this->generateBarcodeImage($asset);
-    
+
         return redirect()->route('admin.assets.index')
                         ->with('success', 'Aset berhasil ditambahkan');
     }
@@ -240,8 +250,9 @@ class AssetController extends Controller
     public function show(Asset $asset)
     {
         $asset->load(['category', 'location', 'assignedTo', 'maintenances', 'specifications', 'documents', 'cctvs']);
-        
-        return view('admin.assets.show', compact('asset'));
+        $locations = \App\Models\Location::orderBy('name')->get();
+
+        return view('admin.assets.show', compact('asset', 'locations'));
     }
 
     /**
@@ -285,18 +296,19 @@ class AssetController extends Controller
             'useful_life_months' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
             'warranty_expiry' => 'nullable|date',
-            // Spesifikasi
+            'auto_maintenance_active' => 'nullable|boolean',
+            'auto_maintenance_frequency' => 'required|in:none,monthly,quarterly,semi_annual,annual',
             'specifications' => 'nullable|array',
             'specifications.*' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()
-                             ->withErrors($validator)
-                             ->withInput();
+                            ->withErrors($validator)
+                            ->withInput();
         }
 
-        $data = $request->except(['specifications']);
+        $data = $request->except(['specifications', '_token', '_method']);
         
         // Recalculate current value if purchase price or useful life changed
         if ($asset->purchase_price != $data['purchase_price'] || 
@@ -304,12 +316,37 @@ class AssetController extends Controller
             $data['current_value'] = $data['purchase_price'];
         }
         
+        // ========== AUTO MAINTENANCE ==========
+        $autoActive = $request->has('auto_maintenance_active');
+        $frequency = $request->auto_maintenance_frequency ?? 'none';
+        
+        $data['auto_maintenance_active'] = $autoActive;
+        $data['auto_maintenance_frequency'] = $frequency;
+        
+        if ($autoActive && $frequency != 'none') {
+            // Jika baru aktif atau frekuensi berubah
+            $lastDate = $asset->last_maintenance_date ?? $request->purchase_date ?? now();
+            
+            // Jika tidak ada last_maintenance_date, set ke purchase_date
+            if (!$asset->last_maintenance_date) {
+                $data['last_maintenance_date'] = $request->purchase_date;
+            } else {
+                $data['last_maintenance_date'] = $asset->last_maintenance_date;
+            }
+            
+            $data['next_maintenance_date'] = $this->calculateNextDate($lastDate, $frequency);
+        } else {
+            // Jika dinonaktifkan, reset
+            $data['last_maintenance_date'] = null;
+            $data['next_maintenance_date'] = null;
+        }
+        
         $asset->update($data);
         
-        // ========== UPDATE SPESIFIKASI ==========
+        // Update specifications
         $category = Category::find($request->category_id);
         
-        // Hapus spesifikasi lama yang tidak ada di request baru
+        // Hapus spesifikasi lama yang tidak ada di request
         $requestedKeys = [];
         if ($request->has('specifications') && is_array($request->specifications)) {
             $requestedKeys = array_keys(array_filter($request->specifications, function($value) {
@@ -318,19 +355,10 @@ class AssetController extends Controller
         }
         
         $asset->specifications()->whereNotIn('spec_key', $requestedKeys)->delete();
-
-        // Hapus spesifikasi yang tidak dikirim
-        $asset->specifications()
-              ->whereNotIn('spec_key', $requestedKeys)
-              ->delete();
         
         // Simpan spesifikasi baru
         if (!empty($requestedKeys)) {
             $this->saveSpecifications($asset, $request->specifications, $category);
-        }
-        
-        if ($asset->wasChanged('asset_code')) {
-            $this->generateBarcodeImage($asset);
         }
         
         // Regenerate barcode if asset code changed
@@ -339,7 +367,7 @@ class AssetController extends Controller
         }
         
         return redirect()->route('admin.assets.index')
-                         ->with('success', 'Aset berhasil diperbarui');
+                        ->with('success', 'Aset berhasil diperbarui');
     }
 
     /**
@@ -884,5 +912,18 @@ class AssetController extends Controller
         
         $location = Location::find($locationId);
         return back()->with('success', count($ids) . ' aset dipindahkan ke ' . $location->name);
+    }
+
+    private function calculateNextDate($lastDate, $frequency)
+    {
+        $date = \Carbon\Carbon::parse($lastDate);
+        
+        switch ($frequency) {
+            case 'monthly': return $date->addMonth();
+            case 'quarterly': return $date->addMonths(3);
+            case 'semi_annual': return $date->addMonths(6);
+            case 'annual': return $date->addYear();
+            default: return null;
+        }
     }
 }
