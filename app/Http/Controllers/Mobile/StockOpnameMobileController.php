@@ -14,7 +14,6 @@ class StockOpnameMobileController extends Controller
 {
     public function index()
     {
-        // Ambil sesi yang sedang berjalan atau draft
         $activeSession = StockOpnameSession::whereIn('status', ['draft', 'in_progress'])
             ->where('created_by', auth()->id())
             ->latest()
@@ -27,8 +26,10 @@ class StockOpnameMobileController extends Controller
         return view('mobile.stock-opname.index', compact('activeSession', 'sessions'));
     }
 
-    public function scan(StockOpnameSession $session)
+    public function scan($session)
     {
+        $session = StockOpnameSession::findOrFail($session);
+        
         if ($session->status == 'draft') {
             $session->update([
                 'status' => 'in_progress',
@@ -36,65 +37,99 @@ class StockOpnameMobileController extends Controller
             ]);
         }
 
-        // Ambil item yang belum di-scan
-        $nextItem = $session->items()
-            ->with('asset')
-            ->whereNull('scanned_at')
-            ->first();
+        $total = $session->items()->count();
+        $scanned = $session->items()->whereNotNull('scanned_at')->count();
+        $stats = [
+            'total' => $total,
+            'scanned' => $scanned,
+            'remaining' => $total - $scanned,
+            'progress' => $total > 0 ? round(($scanned / $total) * 100) : 0,
+        ];
 
-        $stats = $this->getStats($session);
-
-        return view('mobile.stock-opname.scan', compact('session', 'nextItem', 'stats'));
+        return view('mobile.stock-opname.scan', compact('session', 'stats'));
     }
 
-    public function scanAsset(Request $request, StockOpnameSession $session)
+    public function scanAsset(Request $request, $session)
     {
+        $session = StockOpnameSession::find($session);
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesi tidak ditemukan'
+            ]);
+        }
+        
         $barcode = $request->get('barcode');
+        
+        if (!$barcode) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Barcode tidak boleh kosong'
+            ]);
+        }
         
         $item = $session->items()
             ->with('asset.location')
             ->whereHas('asset', function($q) use ($barcode) {
                 $q->where('asset_code', $barcode)
-                  ->orWhere('serial_number', $barcode);
+                  ->orWhere('serial_number', $barcode)
+                  ->orWhere('id', $barcode);
             })
             ->first();
-
+        
         if (!$item) {
             return response()->json([
                 'success' => false,
-                'message' => 'Aset tidak ditemukan dalam sesi ini'
+                'message' => 'Aset dengan kode ' . $barcode . ' tidak ditemukan dalam sesi ini'
             ]);
         }
-
+        
         if ($item->scanned_at) {
             return response()->json([
                 'success' => false,
-                'message' => 'Aset sudah di-scan'
+                'message' => 'Aset ' . $item->asset->name . ' sudah di-scan sebelumnya'
             ]);
         }
-
+        
         return response()->json([
             'success' => true,
             'itemId' => $item->id,
             'asset' => [
                 'asset_code' => $item->asset->asset_code,
                 'name' => $item->asset->name,
-                'location_name' => $item->asset->location->name ?? '-',
+                'location_name' => $item->asset->location->name ?? $item->expected_location ?? '-',
                 'condition' => $item->asset->condition ?? 'Baik',
             ]
         ]);
     }
 
-    public function submitScan(Request $request, StockOpnameSession $session, StockOpnameItem $item)
+    public function submitScan(Request $request, $session, $item)
     {
+        $session = StockOpnameSession::find($session);
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesi tidak ditemukan'
+            ]);
+        }
+        
+        $item = StockOpnameItem::find($item);
+        if (!$item) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item tidak ditemukan'
+            ]);
+        }
+
         $request->validate([
             'actual_status' => 'required|in:found,missing,damaged,moved',
-            'actual_location' => 'required_if:actual_status,moved|nullable|string',
+            'actual_location' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
 
-        DB::beginTransaction();
         try {
+            DB::beginTransaction();
+            
             $item->update([
                 'actual_status' => $request->actual_status,
                 'actual_location' => $request->actual_location,
@@ -103,6 +138,7 @@ class StockOpnameMobileController extends Controller
                 'scanned_at' => now(),
             ]);
 
+            // Jika aset berpindah lokasi
             if ($request->actual_status == 'moved' && $request->actual_location) {
                 $location = \App\Models\Location::where('name', 'LIKE', '%' . $request->actual_location . '%')->first();
                 if ($location) {
@@ -110,11 +146,10 @@ class StockOpnameMobileController extends Controller
                 }
             }
 
+            // Jika aset rusak
             if ($request->actual_status == 'damaged') {
                 $item->asset->update(['status' => 'damaged']);
             }
-
-            DB::commit();
 
             $remainingItems = $session->items()->whereNull('scanned_at')->count();
             $completed = $remainingItems == 0;
@@ -126,11 +161,7 @@ class StockOpnameMobileController extends Controller
                 ]);
             }
 
-            // Cache progress untuk offline sync
-            Cache::put("mobile_scan_{$session->id}_{$item->id}", [
-                'scanned_at' => now(),
-                'status' => $request->actual_status
-            ], 3600);
+            DB::commit();
 
             return response()->json([
                 'success' => true,

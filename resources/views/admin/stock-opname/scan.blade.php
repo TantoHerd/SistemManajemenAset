@@ -1,42 +1,29 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Stock Opname - Scan Aset')
-@section('page-title', 'Stock Opname: ' . $stockOpname->name)
+@section('title', 'Scan Aset - Stock Opname')
+@section('page-title', 'Scan Aset: ' . $stockOpname->name)
 
 @section('header-actions')
-    <a href="{{ route('admin.stock-opname.show', $stockOpname) }}" class="btn btn-outline-secondary btn-sm">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scanModal">
+        <i class="bi bi-upc-scan"></i> Scan QR Code
+    </button>
+    <a href="{{ route('admin.stock-opname.show', $stockOpname) }}" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Kembali
     </a>
 @endsection
 
 @section('content')
 <style>
-    .scan-card {
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        border: none;
-    }
-    .scan-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 25px 30px;
-    }
     .progress-card {
         background: white;
         border-radius: 16px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         border: 1px solid #eef2f6;
     }
-    .input-scan {
-        border-radius: 50px !important;
-        border: 2px solid #eef2f6;
-        padding: 15px 25px;
-        font-size: 18px;
-        transition: all 0.3s;
-    }
-    .input-scan:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    .progress-bar-custom {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        height: 12px;
     }
     .result-card {
         background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
@@ -44,47 +31,19 @@
         border: 1px solid #eef2f6;
         margin-top: 25px;
     }
-    .status-btn {
-        border-radius: 12px;
-        padding: 15px 10px;
-        transition: all 0.2s;
-        font-weight: 600;
-        border: 2px solid transparent;
-    }
-    .status-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .status-btn-found {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-    }
-    .status-btn-missing {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        color: white;
-    }
-    .status-btn-damaged {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: white;
-    }
-    .status-btn-moved {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-    }
     .info-row {
         display: flex;
-        padding: 12px 0;
+        padding: 10px 0;
         border-bottom: 1px solid #eef2f6;
     }
     .info-label {
-        width: 120px;
+        width: 100px;
         font-weight: 600;
         color: #6b7280;
     }
     .info-value {
         flex: 1;
         color: #1f2937;
-        font-weight: 500;
     }
     .badge-condition {
         padding: 4px 12px;
@@ -100,52 +59,28 @@
         background: #fed7aa;
         color: #92400e;
     }
-    .progress-bar-custom {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px;
-        height: 12px;
-    }
-    .toast-custom {
+    .status-btn {
         border-radius: 12px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        min-width: 300px;
-        background: white;
-    }
-    .toast-custom.toast-success {
-        border-left: 4px solid #10b981;
-        background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-    }
-    .toast-custom.toast-success .toast-body {
-        color: #065f46;
-    }
-    .toast-custom.toast-error {
-        border-left: 4px solid #ef4444;
-        background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-    }
-    .toast-custom.toast-error .toast-body {
-        color: #991b1b;
-    }
-    .toast-custom.toast-warning {
-        border-left: 4px solid #f59e0b;
-        background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-    }
-    .toast-custom.toast-warning .toast-body {
-        color: #92400e;
-    }
-    .toast-custom .toast-body {
-        padding: 12px 16px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .toast-custom .toast-body i {
-        font-size: 20px;
-    }
-    .btn-outline-secondary:hover {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        padding: 12px 10px;
+        transition: all 0.2s;
+        font-weight: 600;
         border: none;
         color: white;
+    }
+    .status-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .status-btn-found { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .status-btn-missing { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+    .status-btn-damaged { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    .status-btn-moved { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+    .scan-result-flash {
+        animation: flashSuccess 0.5s;
+    }
+    @keyframes flashSuccess {
+        0% { background: rgba(16, 185, 129, 0.3); }
+        100% { background: transparent; }
     }
 </style>
 
@@ -168,7 +103,6 @@
                     </span>
                 </div>
             </div>
-            
             <div class="progress mb-3" style="height: 12px; border-radius: 10px; background: #eef2f6;">
                 @php
                     $progressPercent = ($total ?? 0) > 0 ? round((($scanned ?? 0) / ($total ?? 0)) * 100) : 0;
@@ -177,7 +111,6 @@
                     {{ $progressPercent }}%
                 </div>
             </div>
-            
             <div class="row text-center">
                 <div class="col-6">
                     <div class="p-2 bg-light rounded">
@@ -197,33 +130,25 @@
         </div>
         
         <!-- Scan Card -->
-        <div class="card scan-card">
-            <div class="scan-header text-white">
-                <div class="d-flex align-items-center">
-                    <div class="me-3">
-                        <i class="bi bi-upc-scan fs-1"></i>
-                    </div>
-                    <div>
-                        <h4 class="mb-0 fw-bold">Scan Barcode Aset</h4>
-                        <p class="mb-0 opacity-75">Masukkan atau scan kode aset untuk verifikasi</p>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-4">
+        <div class="card">
+            <div class="card-body">
                 <!-- Input Scan -->
                 <div class="mb-4">
+                    <label class="form-label fw-semibold">Masukkan Kode Aset</label>
                     <div class="input-group">
                         <span class="input-group-text bg-transparent border-end-0">
                             <i class="bi bi-upc-scan text-primary fs-5"></i>
                         </span>
-                        <input type="text" id="barcodeInput" class="form-control input-scan border-start-0 ps-0 text-center" 
-                                placeholder="AST20260422-510AA7" autofocus>
+                        <input type="text" id="barcodeInput" class="form-control border-start-0 text-center" 
+                               placeholder="AST20260422-510AA7" autofocus>
+                        <button class="btn btn-primary" type="button" id="manualScanBtn">
+                            <i class="bi bi-search"></i> Cek
+                        </button>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#scanModal">
+                            <i class="bi bi-upc-scan"></i> Scan
+                        </button>
                     </div>
-                    <div class="text-center mt-2">
-                        <small class="text-muted">
-                            <i class="bi bi-keyboard me-1"></i> Tekan <kbd>Enter</kbd> setelah memasukkan kode
-                        </small>
-                    </div>
+                    <small class="text-muted">Tekan <kbd>Enter</kbd> atau klik <kbd>Cek</kbd></small>
                 </div>
                 
                 <div id="loading" style="display: none;" class="text-center py-5">
@@ -235,11 +160,10 @@
                 
                 <!-- Hasil Scan -->
                 <div id="scanResult" style="display: none;">
-                    <div class="result-card p-4">
+                    <div class="result-card p-4 scan-result-flash" id="scanResultCard">
                         <div class="d-flex align-items-center mb-4">
                             <i class="bi bi-check-circle-fill text-success fs-3 me-2"></i>
                             <h5 class="mb-0 fw-bold">Hasil Scan Aset</h5>
-                            <span class="ms-auto" id="statusBadge"></span>
                         </div>
                         
                         <div class="info-row">
@@ -339,94 +263,154 @@
     </div>
 </div>
 
+<!-- ============ MODAL SCANNER (SAMA SEPERTI DAFTAR ASET) ============ -->
+@include('admin.stock-opname._scan-modal')
+
+<!-- ============ MODAL HASIL SCAN (SAMA SEPERTI DAFTAR ASET) ============ -->
+<div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-info-circle text-primary me-2"></i>Detail Aset
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="resultModalBody">
+                <!-- Dinamis dari JavaScript -->
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Notification -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
     <div id="liveToast" class="toast toast-custom" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
         <div class="d-flex">
-            <div class="toast-body" id="toastMessage">
-                Pesan
-            </div>
+            <div class="toast-body" id="toastMessage">Pesan</div>
             <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
     </div>
 </div>
 
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 let currentItemId = null;
 let currentAssetName = null;
 let currentExtraStatus = null;
 let totalItems = {{ $total ?? 0 }};
 let scannedItems = {{ $scanned ?? 0 }};
-
-// Function update progress display
-function updateProgressDisplay(scanned, total) {
-    let remaining = total - scanned;
-    let progressPercent = total > 0 ? Math.round((scanned / total) * 100) : 0;
-    
-    // Update header progress (hanya angka scanned)
-    document.getElementById('scannedCount').innerText = scanned;
-    
-    // Update statistik
-    document.getElementById('scannedTotal').innerText = scanned;
-    document.getElementById('pendingTotal').innerText = remaining;
-    document.getElementById('remainingTotal').innerText = remaining;
-    
-    // Update progress bar
-    let progressBar = document.querySelector('.progress-bar-custom');
-    if (progressBar) {
-        progressBar.style.width = progressPercent + '%';
-        progressBar.innerText = progressPercent + '%';
-    }
-}
+let html5QrCode = null;
 
 // Toast function
 function showToast(message, type = 'success') {
     let toast = document.getElementById('liveToast');
     let toastBody = document.getElementById('toastMessage');
-    
     toastBody.innerText = message;
     
     let toastHeader = document.querySelector('.toast-custom');
-    if (type === 'success') {
-        toastHeader.style.borderLeftColor = '#10b981';
-    } else if (type === 'error') {
-        toastHeader.style.borderLeftColor = '#ef4444';
-    } else if (type === 'warning') {
-        toastHeader.style.borderLeftColor = '#f59e0b';
-    }
+    if (type === 'success') toastHeader.style.borderLeftColor = '#10b981';
+    else if (type === 'error') toastHeader.style.borderLeftColor = '#ef4444';
+    else if (type === 'warning') toastHeader.style.borderLeftColor = '#f59e0b';
     
     let bsToast = new bootstrap.Toast(toast);
     bsToast.show();
 }
 
-// Scan barcode
+// ============ SCANNER MODAL (SAMA SEPERTI DAFTAR ASET) ============
+document.getElementById('scanModal')?.addEventListener('shown.bs.modal', function() {
+    startScanner();
+});
+
+document.getElementById('scanModal')?.addEventListener('hidden.bs.modal', function() {
+    stopScanner();
+});
+
+function startScanner() {
+    if (html5QrCode) stopScanner();
+    html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            stopScanner();
+            bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();
+            document.getElementById('barcodeInput').value = decodedText;
+            scanAsset(decodedText);
+        },
+        () => {}
+    ).catch(err => {
+        showToast('Gagal akses kamera', 'error');
+    });
+}
+
+function stopScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => html5QrCode = null).catch(() => {});
+    }
+}
+
+// ============ MANUAL SCAN ============
 document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         let barcode = this.value.trim();
-        if (barcode) {
-            scanAsset(barcode);
-        }
+        if (barcode) scanAsset(barcode);
     }
 });
 
+document.getElementById('manualScanBtn').addEventListener('click', function() {
+    let barcode = document.getElementById('barcodeInput').value.trim();
+    if (barcode) scanAsset(barcode);
+});
+
+// ============ SCAN ASSET ============
 function scanAsset(barcode) {
+    if (!barcode) {
+        showToast('Barcode kosong', 'warning');
+        return;
+    }
+    
     document.getElementById('loading').style.display = 'block';
     document.getElementById('scanResult').style.display = 'none';
     document.getElementById('movedForm').style.display = 'none';
     document.getElementById('simpleNote').style.display = 'none';
     
-    let url = '{{ route("admin.stock-opname.scan-asset", $stockOpname) }}';
+    // Ambil ID sesi dari data atau hardcode
+    let sessionId = {{ $stockOpname->id ?? 0 }};
+    
+    if (!sessionId) {
+        showToast('ID sesi tidak ditemukan', 'error');
+        document.getElementById('loading').style.display = 'none';
+        return;
+    }
+    
+    let url = '/admin/stock-opname/' + sessionId + '/scan-asset';
     let fullUrl = url + '?barcode=' + encodeURIComponent(barcode);
+    
+    console.log('Scan URL:', fullUrl); // Debug
     
     fetch(fullUrl, {
         method: 'GET',
         headers: {
             'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error('HTTP error ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         document.getElementById('loading').style.display = 'none';
         
         if (data.success) {
@@ -451,19 +435,21 @@ function scanAsset(barcode) {
             document.getElementById('scanNote').value = '';
             document.getElementById('simpleScanNote').value = '';
         } else {
-            showToast(data.message, 'error');
+            showToast(data.message || 'Error', 'error');
             document.getElementById('barcodeInput').value = '';
             document.getElementById('barcodeInput').focus();
         }
     })
     .catch(error => {
+        console.error('Error:', error);
         document.getElementById('loading').style.display = 'none';
-        showToast('Terjadi kesalahan: ' + error.message, 'error');
+        showToast('Error: ' + error.message, 'error');
         document.getElementById('barcodeInput').value = '';
         document.getElementById('barcodeInput').focus();
     });
 }
 
+// ============ STATUS FUNCTIONS ============
 function showMovedForm() {
     document.getElementById('movedForm').style.display = 'block';
     document.getElementById('simpleNote').style.display = 'none';
@@ -504,15 +490,25 @@ function submitStatus(status, actualLocation = '', notes = '') {
     
     document.getElementById('loading').style.display = 'block';
     
-    let url = '{{ route("admin.stock-opname.process-scan", ["stockOpname" => $stockOpname, "item" => "__ITEM_ID__"]) }}';
-    url = url.replace('__ITEM_ID__', currentItemId);
+    // Ambil ID sesi
+    let sessionId = {{ $stockOpname->id ?? 0 }};
+    
+    // Buat URL dengan ID yang benar
+    let url = '/admin/stock-opname/' + sessionId + '/scan/' + currentItemId;
+    
+    console.log('Submit URL:', url);
+    console.log('Data:', {
+        actual_status: status,
+        actual_location: actualLocation,
+        notes: notes
+    });
     
     fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
             'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
@@ -521,15 +517,33 @@ function submitStatus(status, actualLocation = '', notes = '') {
             notes: notes
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error('HTTP error ' + response.status + ': ' + text);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         document.getElementById('loading').style.display = 'none';
         
         if (data.success) {
             scannedItems++;
+            let remaining = totalItems - scannedItems;
+            let progressPercent = Math.round((scannedItems / totalItems) * 100);
             
-            // Panggil function update progress
-            updateProgressDisplay(scannedItems, totalItems);
+            document.getElementById('scannedCount').innerHTML = scannedItems + ' <small class="text-muted fs-6">dari ' + totalItems + '</small>';
+            document.getElementById('scannedTotal').innerText = scannedItems;
+            document.getElementById('pendingTotal').innerText = remaining;
+            
+            let progressBar = document.querySelector('.progress-bar-custom');
+            if (progressBar) {
+                progressBar.style.width = progressPercent + '%';
+                progressBar.innerText = progressPercent + '%';
+            }
             
             document.getElementById('scanResult').style.display = 'none';
             document.getElementById('movedForm').style.display = 'none';
@@ -553,12 +567,96 @@ function submitStatus(status, actualLocation = '', notes = '') {
                 document.getElementById('barcodeInput').focus();
             }
         } else {
-            showToast(data.message, 'error');
+            showToast(data.message || 'Gagal menyimpan', 'error');
         }
     })
     .catch(error => {
+        console.error('Error:', error);
         document.getElementById('loading').style.display = 'none';
-        showToast('Terjadi kesalahan: ' + error.message, 'error');
+        showToast('Error: ' + error.message, 'error');
+    });
+}
+
+// Di dalam script section
+document.getElementById('manualCheckBtn')?.addEventListener('click', function() {
+    const code = document.getElementById('manual-qrcode').value;
+    if (code) {
+        bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();
+        document.getElementById('barcodeInput').value = code;
+        scanAsset(code);
+        document.getElementById('manual-qrcode').value = '';
+    }
+});
+
+// Enter key untuk manual input di modal
+document.getElementById('manual-qrcode')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('manualCheckBtn').click();
+    }
+});
+
+// ============ NOTIFICATION WITH SWEETALERT ============
+function showToast(message, type = 'success') {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+    
+    Toast.fire({
+        icon: type,
+        title: message
+    });
+}
+
+function showAlert(title, message, type = 'success') {
+    const icons = {
+        'success': 'success',
+        'error': 'error', 
+        'warning': 'warning',
+        'info': 'info'
+    };
+    
+    const colors = {
+        'success': '#10b981',
+        'error': '#ef4444',
+        'warning': '#f59e0b',
+        'info': '#3b82f6'
+    };
+    
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: icons[type] || 'info',
+        confirmButtonColor: colors[type] || '#4361ee',
+        confirmButtonText: 'OK',
+        timer: type === 'success' ? 2000 : 4000,
+        timerProgressBar: true,
+        showConfirmButton: type !== 'success'
+    });
+}
+
+// ============ CONFIRMATION DIALOG ============
+function showConfirm(title, message, callback) {
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4361ee',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Lanjutkan!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            callback();
+        }
     });
 }
 

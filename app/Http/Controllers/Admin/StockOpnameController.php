@@ -130,16 +130,31 @@ class StockOpnameController extends Controller
         return view('admin.stock-opname.scan', compact('stockOpname', 'nextItem', 'total', 'scanned'));
     }
 
-    public function processScan(Request $request, StockOpnameSession $stockOpname, StockOpnameItem $item)
+    public function processScan(Request $request, $sessionId, $itemId)
     {
+        $session = StockOpnameSession::find($sessionId);
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesi tidak ditemukan'
+            ]);
+        }
+        
+        $item = StockOpnameItem::find($itemId);
+        if (!$item) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item tidak ditemukan'
+            ]);
+        }
+        
         $request->validate([
             'actual_status' => 'required|in:found,missing,damaged,moved',
-            'actual_location' => 'required_if:actual_status,moved|nullable|string',
+            'actual_location' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
 
         try {
-            // Update item
             $item->update([
                 'actual_status' => $request->actual_status,
                 'actual_location' => $request->actual_location,
@@ -148,8 +163,6 @@ class StockOpnameController extends Controller
                 'scanned_at' => now(),
             ]);
 
-            DB::beginTransaction();
-            
             // Jika aset berpindah lokasi
             if ($request->actual_status == 'moved' && $request->actual_location) {
                 $location = \App\Models\Location::where('name', 'LIKE', '%' . $request->actual_location . '%')->first();
@@ -163,14 +176,12 @@ class StockOpnameController extends Controller
                 $item->asset->update(['status' => 'damaged']);
             }
 
-            DB::commit();
-
             // Cek apakah semua sudah di-scan
-            $remainingItems = $stockOpname->items()->whereNull('scanned_at')->count();
+            $remainingItems = $session->items()->whereNull('scanned_at')->count();
             $completed = $remainingItems == 0;
-            
+
             if ($completed) {
-                $stockOpname->update([
+                $session->update([
                     'status' => 'completed',
                     'completed_at' => now(),
                 ]);
@@ -183,7 +194,6 @@ class StockOpnameController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -233,49 +243,114 @@ class StockOpnameController extends Controller
             ->with('success', 'Sesi Stock Opname dihapus.');
     }
 
-    public function scanAsset(Request $request, StockOpnameSession $stockOpname)
+    public function scanAsset(Request $request, $session)
+{
+    $session = StockOpnameSession::find($session);
+    if (!$session) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Sesi tidak ditemukan'
+        ]);
+    }
+    
+    $barcode = $request->get('barcode');
+    
+    if (!$barcode) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Barcode tidak boleh kosong'
+        ]);
+    }
+    
+    $item = $session->items()
+        ->with('asset.location')
+        ->whereHas('asset', function($q) use ($barcode) {
+            $q->where('asset_code', $barcode)
+              ->orWhere('serial_number', $barcode)
+              ->orWhere('id', $barcode);
+        })
+        ->first();
+    
+    if (!$item) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Aset dengan kode ' . $barcode . ' tidak ditemukan dalam sesi ini'
+        ]);
+    }
+    
+    if ($item->scanned_at) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Aset ' . $item->asset->name . ' sudah di-scan sebelumnya'
+        ]);
+    }
+    
+    return response()->json([
+        'success' => true,
+        'itemId' => $item->id,
+        'asset' => [
+            'asset_code' => $item->asset->asset_code,
+            'name' => $item->asset->name,
+            'location_name' => $item->asset->location->name ?? $item->expected_location ?? '-',
+            'condition' => $item->asset->condition ?? 'Baik',
+        ]
+    ]);
+}
+
+    public function submitScan(Request $request, $session, $item)
     {
-        $barcode = $request->get('barcode');
-        
-        if (!$barcode) {
+        $session = StockOpnameSession::find($session);
+        if (!$session) {
             return response()->json([
-                'success' => false, 
-                'message' => 'Kode aset tidak boleh kosong'
+                'success' => false,
+                'message' => 'Sesi tidak ditemukan'
             ]);
         }
         
-        // Cari item berdasarkan asset_code
-        $item = $stockOpname->items()
-            ->with('asset.location')
-            ->whereHas('asset', function($q) use ($barcode) {
-                $q->where('asset_code', $barcode)
-                ->orWhere('serial_number', $barcode);
-            })
-            ->first();
-        
+        $item = StockOpnameItem::find($item);
         if (!$item) {
             return response()->json([
-                'success' => false, 
-                'message' => 'Aset dengan kode ' . $barcode . ' tidak ditemukan dalam sesi ini'
+                'success' => false,
+                'message' => 'Item tidak ditemukan'
             ]);
         }
-        
-        if ($item->scanned_at) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Aset ' . $item->asset->name . ' sudah di-scan sebelumnya'
-            ]);
-        }
-        
-        return response()->json([
-            'success' => true,
-            'itemId' => $item->id,
-            'asset' => [
-                'asset_code' => $item->asset->asset_code,
-                'name' => $item->asset->name,
-                'location_name' => $item->asset->location->name ?? '-',
-                'condition' => $item->asset->condition ?? 'Baik',
-            ]
+
+        $request->validate([
+            'actual_status' => 'required|in:found,missing,damaged,moved',
+            'actual_location' => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
+
+        try {
+            $item->update([
+                'actual_status' => $request->actual_status,
+                'actual_location' => $request->actual_location,
+                'notes' => $request->notes,
+                'scanned_by' => auth()->id(),
+                'scanned_at' => now(),
+            ]);
+
+            $remainingItems = $session->items()->whereNull('scanned_at')->count();
+            $completed = $remainingItems == 0;
+
+            if ($completed) {
+                $session->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'completed' => $completed,
+                'remaining' => $remainingItems
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

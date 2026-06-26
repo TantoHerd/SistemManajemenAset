@@ -22,7 +22,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ReminderSettingController;
 use App\Http\Controllers\Admin\AssetLocationHistoryController;
 use App\Http\Controllers\Mobile\StockOpnameMobileController;
-use App\Http\Controllers\Admin\DashboardWidgetController;
+use App\Http\Controllers\Admin\ApiKeyController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -260,7 +260,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{stockOpname}', [StockOpnameController::class, 'show'])->name('show');
             Route::post('/{stockOpname}/start', [StockOpnameController::class, 'start'])->name('start');
             Route::get('/{stockOpname}/scan', [StockOpnameController::class, 'scan'])->name('scan');
-            Route::get('/{stockOpname}/scan-asset', [StockOpnameController::class, 'scanAsset'])->name('scan-asset');  // AJAX endpoint
+            Route::get('/{stockOpname}/scan-asset', [StockOpnameController::class, 'scanAsset'])->name('scan-asset')->middleware(['auth']);
             Route::post('/{stockOpname}/scan/{item}', [StockOpnameController::class, 'processScan'])->name('process-scan');
             Route::post('/{stockOpname}/complete', [StockOpnameController::class, 'complete'])->name('complete');
             Route::get('/{stockOpname}/report', [StockOpnameController::class, 'report'])->name('report');
@@ -290,9 +290,22 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/move/{asset}', [AssetLocationHistoryController::class, 'moveAsset'])->name('move');
             Route::post('/export', [AssetLocationHistoryController::class, 'export'])->name('export');
         })->middleware(['auth', 'role:super_admin|admin']);
+
+        // API Keys Management
+        Route::prefix('api-keys')->name('api-keys.')->middleware(['auth', 'role:super_admin|admin'])->group(function () {
+            Route::get('/', [ApiKeyController::class, 'index'])->name('index');
+            Route::get('/create', [ApiKeyController::class, 'create'])->name('create');
+            Route::post('/', [ApiKeyController::class, 'store'])->name('store');
+            Route::get('/{apiKey}', [ApiKeyController::class, 'show'])->name('show');
+            Route::get('/{apiKey}/edit', [ApiKeyController::class, 'edit'])->name('edit');
+            Route::put('/{apiKey}', [ApiKeyController::class, 'update'])->name('update');
+            Route::delete('/{apiKey}', [ApiKeyController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/toggle', [ApiKeyController::class, 'toggle'])->name('toggle');
+        });
     });
 
     // Route untuk Mobile Stock Opname (di luar admin prefix)
+    // Mobile Stock Opname Routes
     Route::middleware(['auth'])->prefix('stock-opname-mobile')->name('mobile.stock-opname.')->group(function () {
         Route::get('/', [StockOpnameMobileController::class, 'index'])->name('index');
         Route::get('/scan/{session}', [StockOpnameMobileController::class, 'scan'])->name('scan');

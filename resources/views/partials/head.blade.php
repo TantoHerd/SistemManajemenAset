@@ -18,6 +18,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <!-- GridStack CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.1.0/dist/gridstack.min.css" />
+<!-- QuaggaJS untuk barcode scanning -->
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }

@@ -177,6 +177,16 @@
                 </ul>
             </li>
             @endrole
+
+            <!-- API Keys -->
+            @role('super_admin|admin')
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.api-keys.*') ? 'active' : '' }}" 
+                href="{{ route('admin.api-keys.index') }}">
+                    <i class="bi bi-key"></i> API Keys
+                </a>
+            </li>
+            @endrole
             
             <!-- Konfigurasi -->
             @can('view settings')
